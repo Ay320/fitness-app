@@ -14,3 +14,9 @@ const MainScreen = () => {
   useEffect(() => {
     dispatch(fetchWorkoutPlans());
   }, []);
+
+const quickActions = [
+    { id: 'start', icon: 'play-arrow', label: 'Start training', screen: 'WorkoutSession' },
+    { id: 'plan', icon: 'calendar-today', label: 'My plan', screen: 'PlanList' },
+    { id: 'stats', icon: 'show-chart', label: 'Data statistics', screen: 'Analytics' },
+  ];
