@@ -20,3 +20,17 @@ const quickActions = [
     { id: 'plan', icon: 'calendar-today', label: 'My plan', screen: 'PlanList' },
     { id: 'stats', icon: 'show-chart', label: 'Data statistics', screen: 'Analytics' },
   ];
+return (
+    <View className="flex-1 bg-gray-50 p-4">
+      <View className="flex-row items-center justify-between mb-6">
+        <View>
+          <Text className="text-lg text-gray-500">welcome back</Text>
+          <Text className="text-2xl font-bold">{user.name}</Text>
+        </View>
+        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+          <Image 
+            source={{ uri: user.avatar }} 
+            className="w-12 h-12 rounded-full"
+          />
+        </TouchableOpacity>
+      </View>
