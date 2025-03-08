@@ -34,3 +34,18 @@ return (
           />
         </TouchableOpacity>
       </View>
+ <View className="bg-white rounded-xl p-4 shadow-sm mb-6">
+        <Text className="text-lg font-semibold mb-2">Today target</Text>
+        <View className="flex-row items-center justify-around">
+          <ProgressItem 
+            label="calorie" 
+            progress={todayProgress.calories / 2000} 
+            value={`${todayProgress.calories}kcal`}
+          />
+          <ProgressItem
+            label="time" 
+            progress={todayProgress.duration / 60} 
+            value={`${todayProgress.duration}min`}
+          />
+        </View>
+      </View>
