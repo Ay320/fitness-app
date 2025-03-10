@@ -24,7 +24,7 @@ return (
     <View className="flex-1 bg-gray-50 p-4">
       <View className="flex-row items-center justify-between mb-6">
         <View>
-          <Text className="text-lg text-gray-500">welcome back</Text>
+          <Text className="text-lg text-gray-500">Welcome Back</Text>
           <Text className="text-2xl font-bold">{user.name}</Text>
         </View>
         <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
@@ -35,7 +35,7 @@ return (
         </TouchableOpacity>
       </View>
  <View className="bg-white rounded-xl p-4 shadow-sm mb-6">
-        <Text className="text-lg font-semibold mb-2">Today target</Text>
+        <Text className="text-lg font-semibold mb-2">Target Today</Text>
         <View className="flex-row items-center justify-around">
           <ProgressItem 
             label="calorie" 
@@ -49,3 +49,20 @@ return (
           />
         </View>
       </View>
+<Text className="text-xl font-bold mb-3">Your Plan</Text>
+      <FlatList
+        horizontal
+        data={workouts}
+        keyExtractor={(item) => item.id}
+        showsHorizontalScrollIndicator={false}
+        renderItem={({ item }) => (
+          <WorkoutCard 
+            item={item} 
+            onPress={() => navigation.navigate('WorkoutDetail', { id: item.id })}
+          />
+        )}
+        ItemSeparatorComponent={() => <View className="w-4" />}
+      />
+    </View>
+  );
+};
