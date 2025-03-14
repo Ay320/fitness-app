@@ -1,11 +1,13 @@
 
 from fastapi import FastAPI
-from app.routes import auth_routes  # Import the router module
+from app.routes import auth_routes, user_routes  # Import the router module
 from app import firebase_config  # Ensures Firebase is initialized
 
 app = FastAPI()
 
-app.include_router(auth_routes.router) # Include the router
+# Include the routers
+app.include_router(auth_routes.router) 
+app.include_router(user_routes.router)
 
 @app.get("/")
 async def root():
