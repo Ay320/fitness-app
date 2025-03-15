@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Firebase Test</title>
+</head>
+<body>
+    <button onclick="signIn()">Sign In</button>
+    <div id="token"></div>
+    <div id="status"></div>
+
+    <!-- Load Firebase Compatibility Bundle -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-compat.js"></script>
+
+    <!-- Custom Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof firebase === 'undefined') {
+                document.getElementById('status').innerText = "Error: Firebase SDK not loaded.";
+                console.error("Firebase SDK not loaded. Check network or script URLs.");
+                return;
+            }
+
+            const firebaseConfig = {
+                apiKey: "dummy-key",  // Dummy value for emulator
+                authDomain: "127.0.0.1:9099",
+                projectId: "dummy-project",
+                storageBucket: "dummy-bucket",
+                messagingSenderId: "dummy-sender",
+                appId: "dummy-app-id"
+            };
+
+            // Initialize Firebase
+            try {
+                firebase.initializeApp(firebaseConfig);
+                firebase.auth().useEmulator("http://127.0.0.1:9099");
+                document.getElementById('status').innerText = "Firebase initialized successfully.";
+            } catch (error) {
+                document.getElementById('status').innerText = `Error initializing Firebase: ${error.message}`;
+                console.error("Initialization Error:", error);
+            }
+
+            window.signIn = async function() {
+                const tokenDiv = document.getElementById('token');
+                const statusDiv = document.getElementById('status');
+                statusDiv.innerText = "Attempting to sign in...";
+
+                try {
+                    const userCredential = await firebase.auth().signInWithEmailAndPassword("test1@example.com", "12345678");
+                    statusDiv.innerText = "Sign-in successful!";
+                    const token = await userCredential.user.getIdToken();
+                    tokenDiv.innerText = `Token: ${token}`;
+                    console.log("Token:", token);  // Log to console for easy copying
+                } catch (error) {
+                    statusDiv.innerText = `Error: ${error.message}`;
+                    console.error("Sign-in Error:", error);
+                }
+            };
+        });
+    </script>
+</body>
+</html>
