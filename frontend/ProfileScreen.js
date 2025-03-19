@@ -43,3 +43,52 @@ const ProfileScreen = ({ navigation }) => {
           </View>
         </TouchableOpacity>
 
+        {editMode ? (
+          <Formik
+            initialValues={{ name: user.name, bio: user.bio }}
+            validationSchema={validationSchema}
+            onSubmit={(values) => {
+              dispatch(updateProfile(values));
+              setEditMode(false);
+            }}
+          >
+            {({ handleChange, handleSubmit, values, errors }) => (
+              <View className="items-center mt-4 w-full">
+                <TextInput
+                  className="bg-white p-3 rounded-lg w-full mb-2"
+                  placeholder="name"
+                  value={values.name}
+                  onChangeText={handleChange('name')}
+                />
+                {errors.name && <Text className="text-red-500">{errors.name}</Text>}
+
+                <TextInput
+                  className="bg-white p-3 rounded-lg w-full h-24 mb-2"
+                  placeholder="personal profile"
+                  multiline
+                  value={values.bio}
+                  onChangeText={handleChange('bio')}
+                />
+                
+                <View className="flex-row gap-4 mt-2">
+                  <Button title="cancel" onPress={() => setEditMode(false)} />
+                  <Button title="save" onPress={handleSubmit} />
+                </View>
+              </View>
+            )}
+          </Formik>
+        ) : (
+          <View className="items-center mt-4">
+            <Text className="text-2xl font-bold">{user.name}</Text>
+            <Text className="text-gray-600 mt-2">{user.bio || 'There is no profile'}</Text>
+            <TouchableOpacity 
+              className="mt-4 flex-row items-center"
+              onPress={() => setEditMode(true)}
+            >
+              <Icon name="edit-2" size={16} color="#3B82F6" />
+              <Text className="text-blue-500 ml-1">edit profile</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+        
