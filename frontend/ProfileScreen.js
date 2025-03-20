@@ -101,4 +101,6 @@ const ProfileScreen = ({ navigation }) => {
           <StatItem label="Achievements" value={user.achievements} icon="award" />
         </View>
       </View>
-        
+      
+
+export default ProfileScreen;
