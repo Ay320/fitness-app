@@ -1,10 +1,15 @@
 # tests/conftest.py
 import pytest
 from fastapi.testclient import TestClient
+from fastapi import Header
 from app.main import app
 from app.database import get_database
 from tests.test_data import REAL_FIREBASE_TOKEN
+from app.dependencies import get_current_user  # Import the dependency to override
 
+
+'''
+# Real Token:
 @pytest.fixture
 def client():
     """Provide a TestClient instance for making HTTP requests."""
@@ -23,4 +28,28 @@ def db():
     # Teardown: Delete from Users (cascades to dependent tables)
     db.cursor.execute("DELETE FROM Users")
     db.conn.commit()
+    db.close()'
+    '''
+
+#Mock token:
+@pytest.fixture
+def client():
+    # Override the get_current_user dependency for all tests
+    async def mock_get_current_user(authorization: str = Header(...)):
+        return {"uid": "une1uwhaFy6UFRk7tCGldO0xPX5U", "email": "test1@example.com"}
+
+    app.dependency_overrides[get_current_user] = mock_get_current_user
+    client = TestClient(app)
+    yield client
+    # Clean up the override after the test
+    app.dependency_overrides = {}
+
+@pytest.fixture
+def firebase_token():
+    return "mock_firebase_token"
+
+@pytest.fixture
+def db():
+    db = get_database()
+    yield db
     db.close()
