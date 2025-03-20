@@ -94,10 +94,10 @@ const ProfileScreen = ({ navigation }) => {
 
           
           <View className="bg-white rounded-xl p-4 mb-6 shadow-sm">
-        <Text className="text-lg font-semibold mb-4">运动总览</Text>
+        <Text className="text-lg font-semibold mb-4">Workout overview</Text>
         <View className="flex-row justify-between">
           <StatItem label="Total hours" value={`${user.totalHours}h`} delta="+2h" />
-          <StatItem label="Completed times " value={user.workouts} delta="+3次" />
+          <StatItem label="Completed times " value={user.workouts} delta="+3times" />
           <StatItem label="Achievements" value={user.achievements} icon="award" />
         </View>
       </View>
