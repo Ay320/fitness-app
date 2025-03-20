@@ -66,3 +66,5 @@ return (
     </View>
   );
 };
+
+export default MainScreen;

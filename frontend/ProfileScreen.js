@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, Button, StyleSheet } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Formik } from 'formik';
 import * as ImagePicker from 'expo-image-picker';
@@ -9,11 +9,10 @@ import validationSchema from '../utils/profileValidation';
 
 const ProfileScreen = ({ navigation }) => {
   const dispatch = useDispatch();
-  const user = useSelector(state => state.auth.user);
+  const user = useSelector(state => state.auth?.user || {});
   const [editMode, setEditMode] = useState(false);
 
-  // upload profile picture
-   const handleAvatarUpload = async () => {
+  const handleAvatarUpload = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -21,31 +20,28 @@ const ProfileScreen = ({ navigation }) => {
       quality: 0.8,
     });
 
-    if (!result.canceled) {
+    if (!result.canceled && result.assets?.[0]?.uri) {
       dispatch(updateProfile({ avatar: result.assets[0].uri }));
     }
   };
-  
-   return (
-    <ScrollView className="bg-gray-50 flex-1 p-4">
-      {/* profile information */}
-      <View className="items-center mb-8">
-        <TouchableOpacity 
-          onPress={handleAvatarUpload}
-          className="relative"
-        >
+
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      {/* Avatar Section */}
+      <View style={styles.avatarContainer}>
+        <TouchableOpacity onPress={handleAvatarUpload}>
           <Image
-            source={{ uri: user.avatar }}
-            className="w-32 h-32 rounded-full border-4 border-white shadow-lg"
+            source={{ uri: user.avatar || 'https://placekitten.com/200/200' }}
+            style={styles.avatar}
           />
-          <View className="absolute bottom-0 right-0 bg-blue-500 p-2 rounded-full">
+          <View style={styles.editIcon}>
             <Icon name="edit-3" size={20} color="white" />
           </View>
         </TouchableOpacity>
 
         {editMode ? (
           <Formik
-            initialValues={{ name: user.name, bio: user.bio }}
+            initialValues={{ name: user.name || '', bio: user.bio || '' }}
             validationSchema={validationSchema}
             onSubmit={(values) => {
               dispatch(updateProfile(values));
@@ -53,42 +49,101 @@ const ProfileScreen = ({ navigation }) => {
             }}
           >
             {({ handleChange, handleSubmit, values, errors }) => (
-              <View className="items-center mt-4 w-full">
+              <View style={styles.formContainer}>
                 <TextInput
-                  className="bg-white p-3 rounded-lg w-full mb-2"
-                  placeholder="name"
+                  style={styles.input}
+                  placeholder="Name"
                   value={values.name}
                   onChangeText={handleChange('name')}
+                  autoFocus
                 />
-                {errors.name && <Text className="text-red-500">{errors.name}</Text>}
+                {errors.name && <Text style={styles.error}>{errors.name}</Text>}
 
                 <TextInput
-                  className="bg-white p-3 rounded-lg w-full h-24 mb-2"
-                  placeholder="personal profile"
+                  style={[styles.input, styles.bioInput]}
+                  placeholder="Personal Profile"
                   multiline
                   value={values.bio}
                   onChangeText={handleChange('bio')}
                 />
-                
-                <View className="flex-row gap-4 mt-2">
-                  <Button title="cancel" onPress={() => setEditMode(false)} />
-                  <Button title="save" onPress={handleSubmit} />
+
+                <View style={styles.buttonGroup}>
+                  <Button 
+                    title="Cancel" 
+                    onPress={() => setEditMode(false)} 
+                    color="#6B7280"
+                  />
+                  <Button 
+                    title="Save" 
+                    onPress={handleSubmit} 
+                    color="#3B82F6"
+                  />
                 </View>
               </View>
             )}
           </Formik>
         ) : (
-          <View className="items-center mt-4">
-            <Text className="text-2xl font-bold">{user.name}</Text>
-            <Text className="text-gray-600 mt-2">{user.bio || 'There is no profile'}</Text>
+          <View style={styles.profileInfo}>
+            <Text style={styles.name}>{user.name || 'Anonymous User'}</Text>
+            <Text style={styles.bio}>
+              {user.bio || 'No profile description yet'}
+            </Text>
             <TouchableOpacity 
-              className="mt-4 flex-row items-center"
+              style={styles.editButton}
               onPress={() => setEditMode(true)}
             >
               <Icon name="edit-2" size={16} color="#3B82F6" />
-              <Text className="text-blue-500 ml-1">edit profile</Text>
+              <Text style={styles.editText}>Edit Profile</Text>
             </TouchableOpacity>
           </View>
         )}
       </View>
-        
+
+      {/* Stats Section */}
+      <View style={styles.statsCard}>
+        <Text style={styles.sectionTitle}>Workout Overview</Text>
+        <View style={styles.statsRow}>
+          <StatItem label="Total Hours" value={`${user.totalHours || 0}h`} />
+          <StatItem label="Completed" value={`${user.workouts || 0} Times`} />
+          <StatItem label="Achievements" value={user.achievements || 0} />
+        </View>
+      </View>
+    </ScrollView>
+  );
+};
+
+const StatItem = ({ label, value }) => (
+  <View style={styles.statItem}>
+    <Text style={styles.statValue}>{value}</Text>
+    <Text style={styles.statLabel}>{label}</Text>
+  </View>
+);
+
+const styles = StyleSheet.create({
+  container: {
+    flexGrow: 1,
+    padding: 16,
+    backgroundColor: '#f3f4f6'
+  },
+  avatarContainer: {
+    alignItems: 'center',
+    marginBottom: 24
+  },
+  avatar: {
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+    borderWidth: 4,
+    borderColor: 'white'
+  },
+  editIcon: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#3B82F6',
+    padding: 8,
+    borderRadius: 20
+  },
+});
+
+export default ProfileScreen;
