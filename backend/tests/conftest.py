@@ -1,4 +1,3 @@
-# tests/conftest.py
 import pytest
 from fastapi.testclient import TestClient
 from fastapi import Header
@@ -35,7 +34,7 @@ def db():
 @pytest.fixture
 def client():
     # Override the get_current_user dependency for all tests
-    async def mock_get_current_user(authorization: str = Header(...)):
+    async def mock_get_current_user():
         return {"uid": "une1uwhaFy6UFRk7tCGldO0xPX5U", "email": "test1@example.com"}
 
     app.dependency_overrides[get_current_user] = mock_get_current_user
@@ -51,5 +50,15 @@ def firebase_token():
 @pytest.fixture
 def db():
     db = get_database()
+    # Clean up all tables before each test
+    # Deleting from Users will cascade to dependent tables (Workout_Logs, Weight_History)
+    db.cursor.execute("DELETE FROM Users")
+    # Also delete Workout_Exercises 
+    db.cursor.execute("DELETE FROM Workout_Exercises")
+    db.conn.commit()
     yield db
+    # Clean up after each test 
+    db.cursor.execute("DELETE FROM Users")
+    db.cursor.execute("DELETE FROM Workout_Exercises")
+    db.conn.commit()
     db.close()
