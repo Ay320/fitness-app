@@ -5,7 +5,21 @@ from app.main import app
 from app.database import get_database
 from tests.test_data import REAL_FIREBASE_TOKEN
 from app.dependencies import get_current_user  # Import the dependency to override
+import os
 
+
+# Set the test database environment variable
+os.environ["TEST_DATABASE"] = "fittrack_test_DB"
+
+'''
+def pytest_configure(config):   # to check which database is connected to
+    """Configure pytest to show logs during test execution."""
+    # Enable live logging
+    config.option.log_cli = True
+    # Set the logging level to INFO
+    config.option.log_cli_level = "INFO"
+    # Define the log format
+    config.option.log_cli_format = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"'''
 
 '''
 # Real Token:
@@ -35,7 +49,7 @@ def db():
 def client():
     # Override the get_current_user dependency for all tests
     async def mock_get_current_user():
-        return {"uid": "une1uwhaFy6UFRk7tCGldO0xPX5U", "email": "test1@example.com"}
+        return {"uid": "testuser1", "email": "test1@example.com"}
 
     app.dependency_overrides[get_current_user] = mock_get_current_user
     client = TestClient(app)
@@ -47,18 +61,35 @@ def client():
 def firebase_token():
     return "mock_firebase_token"
 
-@pytest.fixture
+
+@pytest.fixture(scope="session")
 def db():
+    print("Creating database connection for test session")
     db = get_database()
-    # Clean up all tables before each test
-    # Deleting from Users will cascade to dependent tables (Workout_Logs, Weight_History)
-    db.cursor.execute("DELETE FROM Users")
-    # Also delete Workout_Exercises 
-    db.cursor.execute("DELETE FROM Workout_Exercises")
-    db.conn.commit()
+    try:
+        print("Clearing tables before test session")
+        db.clear_all_tables()
+    except Exception as e:
+        print(f"Error clearing tables before test session: {e}")
+        raise
     yield db
-    # Clean up after each test 
-    db.cursor.execute("DELETE FROM Users")
-    db.cursor.execute("DELETE FROM Workout_Exercises")
-    db.conn.commit()
-    db.close()
+    try:
+        print("Clearing tables after test session")
+        db.clear_all_tables()
+    except Exception as e:
+        print(f"Error clearing tables after test session: {e}")
+    finally:
+        try:
+            print("Closing database connection")
+            db.close()
+        except Exception as e:
+            print(f"Error closing database connection: {e}")
+
+@pytest.fixture(autouse=True)
+def clear_tables(db):
+    """Clear all tables before each test to ensure isolation."""
+    try:
+        db.clear_all_tables()
+    except Exception as e:
+        print(f"Error clearing tables before test: {e}")
+        raise

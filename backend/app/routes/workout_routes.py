@@ -16,35 +16,44 @@ async def get_workouts(current_user: dict = Depends(get_current_user)):
     try:
         db.cursor.execute("SELECT * FROM Workout_Exercises")
         workouts = db.cursor.fetchall()
-        return [{"id": row[0], "exercise_name": row[1], "primary_muscle": row[2], "secondary_muscle": row[3],
-                 "difficulty": row[4], "category": row[5], "equipment": row[6],
-                 "initial_recommended_sets": row[7], "initial_recommended_reps": row[8], "initial_recommended_time": row[9],
-                 "instructions": row[10], "injury_prevention_tips": row[11], "image_url": row[12]}
-                for row in workouts]
+        return [
+            {
+                "id": row["exercise_id"],
+                "exercise_name": row["exercise_name"],
+                "primary_muscle": row["primary_muscle"],
+                "secondary_muscle": row["secondary_muscle"],
+                "difficulty": row["difficulty"],
+                "category": row["category"],
+                "equipment": row["equipment"],
+                "initial_recommended_sets": row["initial_recommended_sets"],
+                "initial_recommended_reps": row["initial_recommended_reps"],
+                "initial_recommended_time": row["initial_recommended_time"],
+                "instructions": row["instructions"],
+                "injury_prevention_tips": row["injury_prevention_tips"],
+                "image_url": row["image_url"]
+            }
+            for row in workouts
+        ]
     finally:
         db.close()
 
 # POST /workouts/log: Log a workout for the user
+
 @router.post("/log")
 async def log_workout(
     workout: WorkoutLogCreate,
     exercise_id: int = Query(...),
     current_user: dict = Depends(get_current_user),
-    db: Database = Depends(get_database)  
+    db: Database = Depends(get_database)
 ):
-    """
-    Log a workout for the authenticated user.
-    Requires an exercise_id as a query parameter and workout details in the request body.
-    Saves the workout to the Workout_Logs table and returns the log_id.
-    """
-    print(f"Received workout data: {workout.dict()}")  # Debug print
-    # Get user_id from Firebase UID
+    """Log a workout for the authenticated user."""
+    print(f"Received workout data: {workout.dict()}")
     firebase_uid = current_user.get("uid")
     db.cursor.execute("SELECT user_id FROM Users WHERE firebase_uid = %s", (firebase_uid,))
     user = db.cursor.fetchone()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    user_id = user[0]
+    user_id = user["user_id"]
 
     # Verify the exercise exists
     db.cursor.execute("SELECT exercise_id FROM Workout_Exercises WHERE exercise_id = %s", (exercise_id,))
@@ -52,24 +61,18 @@ async def log_workout(
         raise HTTPException(status_code=404, detail="Exercise not found")
 
     # Insert the workout log
-    query = """
-        INSERT INTO Workout_Logs (user_id, exercise_id, sets, reps, duration_minutes, weight, notes)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """
-    values = (
-        user_id,
-        exercise_id,
-        workout.sets,
-        workout.reps,
-        workout.duration_minutes,
-        workout.weight,
-        workout.notes
+    workout_log_id = db.log_workout(
+        user_id=user_id,
+        plan_exercise_id=None,  # General logging, not tied to a plan
+        exercise_id=exercise_id,
+        sets=workout.sets,
+        reps=workout.reps,
+        duration_minutes=workout.duration_minutes,
+        weight=workout.weight,
+        notes=workout.notes
     )
-    print(f"Inserting values: {values}")  # Debug print
-    db.cursor.execute(query, values)
-    db.conn.commit()
-    print(f"Inserted log_id: {db.cursor.lastrowid}")  # Debug print
-    return {"message": "Workout logged successfully", "log_id": db.cursor.lastrowid}
+    print(f"Inserted log_id: {workout_log_id}")
+    return {"message": "Workout logged successfully", "log_id": workout_log_id}
 
 
 # GET /workouts/logs: Retrieve the user's workout logs
@@ -98,10 +101,21 @@ async def get_workout_logs(
     )
     logs = db.cursor.fetchall()
     print(f"Fetched logs: {logs}")  # Debug print
-    return [{"log_id": row[0], "user_id": row[1], "exercise_id": row[2], "exercise_name": row[3],
-             "date_logged": str(row[4]), "sets": row[5], "reps": row[6],
-             "duration_minutes": row[7], "weight": row[8], "notes": row[9]}
-            for row in logs]
+    return [
+        {
+            "log_id": row["log_id"],
+            "user_id": row["user_id"],
+            "exercise_id": row["exercise_id"],
+            "exercise_name": row["exercise_name"],
+            "date_logged": str(row["date_logged"]),
+            "sets": row["sets"],
+            "reps": row["reps"],
+            "duration_minutes": row["duration_minutes"],
+            "weight": row["weight"],
+            "notes": row["notes"]
+        }
+        for row in logs
+    ]
 
 
 # PUT /workouts/logs/{log_id}: Update an existing workout log
@@ -124,7 +138,7 @@ async def update_workout_log(
     user = db.cursor.fetchone()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    user_id = user[0]
+    user_id = user["user_id"]
 
     # Verify the log exists and belongs to the user
     db.cursor.execute(
@@ -181,7 +195,7 @@ async def delete_workout_log(
     user = db.cursor.fetchone()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    user_id = user[0]
+    user_id = user["user_id"]
 
     # Verify the log exists and belongs to the user
     db.cursor.execute(
@@ -202,3 +216,5 @@ async def delete_workout_log(
 # TODO: Add pagination to GET /workouts/logs to handle large datasets
 # TODO: Add logging for database errors and failed operations
 # Future improvement: Add validation for exercise_id in POST /workouts/log to ensure it corresponds to a valid exercise
+
+# Logging a workout for a specific plan exercise is implemented in the plans_routes file.
