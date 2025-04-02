@@ -1,16 +1,47 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, Button, StyleSheet } from 'react-native';
-import { useDispatch, useSelector } from 'react-redux';
-import { Formik } from 'formik';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, Button } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import Icon from '@expo/vector-icons/Feather';
-import { updateProfile } from '../store/authSlice';
-import validationSchema from '../utils/profileValidation';
+import { Formik } from 'formik';
+import * as Yup from 'yup';
 
-const ProfileScreen = ({ navigation }) => {
-  const dispatch = useDispatch();
-  const user = useSelector(state => state.auth?.user || {});
+const validationSchema = Yup.object().shape({
+  name: Yup.string().min(2, 'Name too short').required('Name is required'),
+  bio: Yup.string().max(200, 'Bio too long'),
+  height: Yup.string().required('Height is required'),
+  weight: Yup.string().required('Weight is required'),
+  DOB: Yup.string().required('Date of Birth is required'),
+  gender: Yup.string().required('Gender is required'),
+  goal: Yup.string().required('Fitness goal is required'),
+  expLvl: Yup.string().required('Experience level is required'),
+  targetWeight: Yup.string().required('Target weight is required'),
+});
+
+const ProfileScreen = () => {
+  const [user, setUser] = useState({
+    name: 'John Doe',
+    bio: 'Hello, this is my bio.',
+    avatar: 'https://media.istockphoto.com/id/1451587807/vector/user-profile-icon-vector-avatar-or-person-icon-profile-picture-portrait-symbol-vector.jpg?s=612x612&w=0&k=20&c=yDJ4ITX1cHMh25Lt1vI1zBn2cAKKAlByHBvPJ8gEiIg=',
+    email: 'user@example.com',
+    height: '175 cm',
+    weight: '70 kg',
+    DOB: '01/01/1990',
+    gender: 'Male',
+    goal: 'Muscle Gain',
+    expLvl: 'Beginner',
+    targetWeight: '80 kg',
+  });
+
   const [editMode, setEditMode] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Sorry, we need camera roll permissions to make this work!');
+      }
+    })();
+  }, []);
 
   const handleAvatarUpload = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -20,130 +51,150 @@ const ProfileScreen = ({ navigation }) => {
       quality: 0.8,
     });
 
-    if (!result.canceled && result.assets?.[0]?.uri) {
-      dispatch(updateProfile({ avatar: result.assets[0].uri }));
+    if (!result.canceled && result.assets.length > 0) {
+      setUser((prevUser) => ({
+        ...prevUser,
+        avatar: result.assets[0].uri,
+      }));
     }
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* Avatar Section */}
+    <ScrollView contentContainerStyle={styles.background}>
       <View style={styles.avatarContainer}>
         <TouchableOpacity onPress={handleAvatarUpload}>
-          <Image
-            source={{ uri: user.avatar || 'https://placekitten.com/200/200' }}
-            style={styles.avatar}
-          />
-          <View style={styles.editIcon}>
+          <Image source={{ uri: user.avatar }} style={styles.avatar} />
+          <View style={styles.avatarEditIcon}>
             <Icon name="edit-3" size={20} color="white" />
           </View>
         </TouchableOpacity>
+        <Text style={styles.name}>{user.name}</Text>
+      </View>
 
-        {editMode ? (
-          <Formik
-            initialValues={{ name: user.name || '', bio: user.bio || '' }}
-            validationSchema={validationSchema}
-            onSubmit={(values) => {
-              dispatch(updateProfile(values));
-              setEditMode(false);
-            }}
-          >
-            {({ handleChange, handleSubmit, values, errors }) => (
-              <View style={styles.formContainer}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Name"
-                  value={values.name}
-                  onChangeText={handleChange('name')}
-                  autoFocus
-                />
-                {errors.name && <Text style={styles.error}>{errors.name}</Text>}
-
-                <TextInput
-                  style={[styles.input, styles.bioInput]}
-                  placeholder="Personal Profile"
-                  multiline
-                  value={values.bio}
-                  onChangeText={handleChange('bio')}
-                />
-
-                <View style={styles.buttonGroup}>
-                  <Button 
-                    title="Cancel" 
-                    onPress={() => setEditMode(false)} 
-                    color="#6B7280"
-                  />
-                  <Button 
-                    title="Save" 
-                    onPress={handleSubmit} 
-                    color="#3B82F6"
-                  />
+      <Formik
+        initialValues={user}
+        validationSchema={validationSchema}
+        enableReinitialize
+        onSubmit={(values) => {
+          setUser(values);
+          setEditMode(false);
+        }}
+      >
+        {({ handleChange, handleSubmit, values }) => (
+          <View style={styles.formContainer}>
+            {editMode ? (
+              <>
+                {Object.keys(user).map((key) => (
+                  key !== 'avatar' && key !== 'email' && (
+                    <View key={key} style={styles.inputContainer}>
+                      <Text style={styles.label}>{key.charAt(0).toUpperCase() + key.slice(1)}</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={values[key]}
+                        onChangeText={handleChange(key)}
+                      />
+                    </View>
+                  )
+                ))}
+                <View style={styles.buttonContainer}>
+                  <Button title="Cancel" onPress={() => setEditMode(false)} color="#B8B8B8" />
+                  <Button title="Save" onPress={handleSubmit} />
                 </View>
+              </>
+            ) : (
+              <View style={styles.textContainer}>
+                <Text style={styles.detailTitle}>Bio: {user.bio}</Text>
+                {Object.entries(user).map(([key, value]) => (
+                  key !== 'avatar' && key !== 'bio' && key !== 'name' && key !== 'email' && (
+                    <Text key={key} style={styles.detailTitle}>{key.charAt(0).toUpperCase() + key.slice(1)}: {value}</Text>
+                  )
+                ))}
               </View>
             )}
-          </Formik>
-        ) : (
-          <View style={styles.profileInfo}>
-            <Text style={styles.name}>{user.name || 'Anonymous User'}</Text>
-            <Text style={styles.bio}>
-              {user.bio || 'No profile description yet'}
-            </Text>
-            <TouchableOpacity 
-              style={styles.editButton}
-              onPress={() => setEditMode(true)}
-            >
-              <Icon name="edit-2" size={16} color="#3B82F6" />
-              <Text style={styles.editText}>Edit Profile</Text>
-            </TouchableOpacity>
           </View>
         )}
-      </View>
+      </Formik>
 
-      {/* Stats Section */}
-      <View style={styles.statsCard}>
-        <Text style={styles.sectionTitle}>Workout Overview</Text>
-        <View style={styles.statsRow}>
-          <StatItem label="Total Hours" value={`${user.totalHours || 0}h`} />
-          <StatItem label="Completed" value={`${user.workouts || 0} Times`} />
-          <StatItem label="Achievements" value={user.achievements || 0} />
-        </View>
-      </View>
+      {!editMode && (
+        <TouchableOpacity style={styles.editProfileButton} onPress={() => setEditMode(true)}>
+          <Icon name="edit-2" size={16} color='rgb(2, 77, 87)' />
+          <Text style={styles.editText}>Edit profile</Text>
+        </TouchableOpacity>
+      )}
     </ScrollView>
   );
 };
 
-const StatItem = ({ label, value }) => (
-  <View style={styles.statItem}>
-    <Text style={styles.statValue}>{value}</Text>
-    <Text style={styles.statLabel}>{label}</Text>
-  </View>
-);
-
-const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    padding: 16,
-    backgroundColor: '#f3f4f6'
+const styles = {
+  background: {
+    flexGrow: 1, 
+    backgroundColor: '#1E1E1E', 
+    alignItems: 'center', 
+    padding: 20 
   },
   avatarContainer: {
     alignItems: 'center',
-    marginBottom: 24
+    marginBottom: 30 
   },
   avatar: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
-    borderWidth: 4,
-    borderColor: 'white'
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
+    borderColor: 'rgb(2, 77, 87)' 
   },
-  editIcon: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: '#3B82F6',
-    padding: 8,
-    borderRadius: 20
+  avatarEditIcon: {
+    position: 'absolute', 
+    bottom: 5, 
+    right: 5, 
+    backgroundColor: 'rgb(2, 77, 87)',
+    borderRadius: 15, 
+    padding: 6 
   },
-});
+  name: {
+    fontSize: 24,
+    color: 'white',
+    fontWeight: 'bold',
+    marginTop: 15 
+  },
+  formContainer: {
+    width: '90%',
+    alignItems: 'center' 
+  },
+  inputContainer: {
+    width: '100%',
+    marginBottom: 12 
+  },
+  label: {
+    color: 'white',
+    fontSize: 16,
+    marginBottom: 4
+  },
+  input: {
+    width: '100%',
+    height: 45,
+    backgroundColor: '#333',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    color: 'white',
+    fontSize: 16 
+  },
+  detailTitle: {
+    color: 'white',
+    fontSize: 18,
+    marginBottom: 8 
+  },
+  editProfileButton: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20 
+  },
+  editText: {
+    color: 'rgb(2, 77, 87)',
+    marginLeft: 5,
+    fontSize: 16 
+  },
+};
 
 export default ProfileScreen;
