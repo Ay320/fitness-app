@@ -21,7 +21,7 @@ def get_user_id_from_uid(db, uid: str) -> int:
     result = db.cursor.fetchone()
     if not result:
         raise HTTPException(status_code=404, detail="User not found")
-    return result[0]
+    return result["user_id"]
 
 # Endpoint 1: Workout Distribution by Type
 @router.get("/workouts/by-type", response_model=List[WorkoutDistribution])
@@ -54,7 +54,7 @@ async def get_workouts_by_type(
     """
     db.cursor.execute(query, (user_id, start_date, end_date))
     results = db.cursor.fetchall()
-    return [{"type": row[0], "count": row[1]} for row in results]
+    return [{"type": row["type"], "count": row["count"]} for row in results]
 
 # Endpoint 2: Workout Distribution by Muscle Group
 @router.get("/workouts/by-muscle-group", response_model=List[MuscleGroupDistribution])
@@ -87,7 +87,7 @@ async def get_workouts_by_muscle_group(
     """
     db.cursor.execute(query, (user_id, start_date, end_date))
     results = db.cursor.fetchall()
-    return [{"muscle_group": row[0], "count": row[1]} for row in results]
+    return [{"muscle_group": row["muscle_group"], "count": row["count"]} for row in results]
 
 # Endpoint 3: User Weight Progress (GET)
 @router.get("/weight/history", response_model=List[WeightEntry])
@@ -120,7 +120,7 @@ async def get_weight_history(
     """
     db.cursor.execute(query, (user_id, start_date, end_date))
     results = db.cursor.fetchall()
-    return [{"date": row[0], "weight": row[1]} for row in results]
+    return [{"date": row["date"], "weight": row["weight"]} for row in results]
 
 # Endpoint 4: Log a New Weight Entry (POST)
 @router.post("/weight", response_model=WeightEntry)
@@ -183,7 +183,7 @@ async def log_weight(
     if not result:
         raise HTTPException(status_code=500, detail="Failed to fetch the logged weight entry")
 
-    return {"date": result[0], "weight": result[1]}
+    return {"date": result["date"], "weight": result["weight"]}
 
 # Endpoint 5: Workout Frequency Trend
 @router.get("/workouts/frequency")
@@ -219,7 +219,7 @@ async def get_workout_frequency(
         """
         db.cursor.execute(query, (user_id, start_date, end_date))
         results = db.cursor.fetchall()
-        return [{"date": row[0], "count": row[1]} for row in results]
+        return [{"date": row["date"], "count": row["count"]} for row in results]
     else:  # weekly
         query = """
             SELECT YEAR(wl.date_logged) AS year, WEEK(wl.date_logged) AS week, COUNT(*) AS count
@@ -229,4 +229,4 @@ async def get_workout_frequency(
         """
         db.cursor.execute(query, (user_id, start_date, end_date))
         results = db.cursor.fetchall()
-        return [{"year": row[0], "week": row[1], "count": row[2]} for row in results]
+        return [{"year": row["year"], "week": row["week"], "count": row["count"]} for row in results]

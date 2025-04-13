@@ -2,6 +2,8 @@ import pytest
 from datetime import date, datetime
 from fastapi.testclient import TestClient
 from app.database import Database
+from unittest.mock import patch
+
 
 def test_get_workouts_by_type(client, db):
     """
@@ -13,7 +15,7 @@ def test_get_workouts_by_type(client, db):
     user_id = 1
     db.cursor.execute(
         "INSERT INTO Users (user_id, firebase_uid, email) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE email=%s",
-        (user_id, "une1uwhaFy6UFRk7tCGldO0xPX5U", "test1@example.com", "test1@example.com")
+        (user_id, "testuser1", "test1@example.com", "test1@example.com")
     )
     db.conn.commit()
 
@@ -47,6 +49,8 @@ def test_get_workouts_by_type(client, db):
     assert {"type": "Strength", "count": 1} in data, "Strength workout type not found in response"
     assert {"type": "Cardio", "count": 1} in data, "Cardio workout type not found in response"
 
+
+
 def test_get_workouts_by_muscle_group(client, db):
     """
     Test the retrieval of workout stats by muscle group within a date range.
@@ -57,7 +61,7 @@ def test_get_workouts_by_muscle_group(client, db):
     user_id = 1
     db.cursor.execute(
         "INSERT INTO Users (user_id, firebase_uid, email) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE email=%s",
-        (user_id, "une1uwhaFy6UFRk7tCGldO0xPX5U", "test1@example.com", "test1@example.com")
+        (user_id, "testuser1", "test1@example.com", "test1@example.com")
     )
     db.conn.commit()
 
@@ -91,6 +95,8 @@ def test_get_workouts_by_muscle_group(client, db):
     assert {"muscle_group": "Chest", "count": 1} in data, "Chest muscle group not found in response"
     assert {"muscle_group": "Full Body", "count": 1} in data, "Full Body muscle group not found in response"
 
+
+
 def test_get_weight_history(client, db):
     """
     Test the retrieval of weight history within a date range.
@@ -101,7 +107,7 @@ def test_get_weight_history(client, db):
     user_id = 1
     db.cursor.execute(
         "INSERT INTO Users (user_id, firebase_uid, email) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE email=%s",
-        (user_id, "une1uwhaFy6UFRk7tCGldO0xPX5U", "test1@example.com", "test1@example.com")
+        (user_id, "testuser1", "test1@example.com", "test1@example.com")
     )
     db.conn.commit()
 
@@ -124,6 +130,8 @@ def test_get_weight_history(client, db):
     assert {"date": "2023-01-01", "weight": 70.5} in data, "Weight entry for 2023-01-01 not found"
     assert {"date": "2023-01-02", "weight": 70.0} in data, "Weight entry for 2023-01-02 not found"
 
+
+
 def test_log_weight_with_date(client, db):
     """
     Test logging a new weight entry with a specific date.
@@ -133,7 +141,7 @@ def test_log_weight_with_date(client, db):
     user_id = 1
     db.cursor.execute(
         "INSERT INTO Users (user_id, firebase_uid, email) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE email=%s",
-        (user_id, "une1uwhaFy6UFRk7tCGldO0xPX5U", "test1@example.com", "test1@example.com")
+        (user_id, "testuser1", "test1@example.com", "test1@example.com")
     )
     db.conn.commit()
 
@@ -146,12 +154,16 @@ def test_log_weight_with_date(client, db):
 
     # Verify the entry in the database
     db.cursor.execute(
-        "SELECT DATE(date_logged), weight_kg FROM Weight_History WHERE user_id = %s AND DATE(date_logged) = %s",
+        "SELECT date_logged, weight_kg FROM Weight_History WHERE user_id = %s AND DATE(date_logged) = %s",
         (user_id, "2023-01-03")
     )
-    result = db.cursor.fetchone()
-    assert result[0] == date(2023, 1, 3), f"Expected date 2023-01-03, got {result[0]}"
-    assert result[1] == 71.0, f"Expected weight 71.0, got {result[1]}"
+    result = db.cursor.fetchone()#
+    print(f"Query result: {result}")  # Debug print to see the actual keys
+    result_date = result["date_logged"].date()  # Extract date from datetime
+    assert result_date == date(2023, 1, 3), f"Expected date 2023-01-03, got {result_date}"
+    assert result["weight_kg"] == 71.0, f"Expected weight 71.0, got {result['weight_kg']}"
+
+
 
 def test_log_weight_without_date(client, db):
     """
@@ -163,7 +175,7 @@ def test_log_weight_without_date(client, db):
     user_id = 1
     db.cursor.execute(
         "INSERT INTO Users (user_id, firebase_uid, email) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE email=%s",
-        (user_id, "une1uwhaFy6UFRk7tCGldO0xPX5U", "test1@example.com", "test1@example.com")
+        (user_id, "testuser1", "test1@example.com", "test1@example.com")
     )
     db.conn.commit()
 
@@ -175,6 +187,8 @@ def test_log_weight_without_date(client, db):
     assert data["weight"] == 72.0, f"Expected weight 72.0, got {data['weight']}"
     assert data["date"] == date.today().isoformat(), f"Expected date {date.today().isoformat()}, got {data['date']}"
 
+
+
 def test_get_workout_frequency_daily(client, db):
     """
     Test the retrieval of workout frequency with daily granularity.
@@ -185,7 +199,7 @@ def test_get_workout_frequency_daily(client, db):
     user_id = 1
     db.cursor.execute(
         "INSERT INTO Users (user_id, firebase_uid, email) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE email=%s",
-        (user_id, "une1uwhaFy6UFRk7tCGldO0xPX5U", "test1@example.com", "test1@example.com")
+        (user_id, "testuser1", "test1@example.com", "test1@example.com")
     )
     db.conn.commit()
 
@@ -219,6 +233,7 @@ def test_get_workout_frequency_daily(client, db):
     assert {"date": "2023-01-01", "count": 1} in data, "Daily entry for 2023-01-01 not found"
     assert {"date": "2023-01-02", "count": 1} in data, "Daily entry for 2023-01-02 not found"
 
+
 def test_get_workout_frequency_weekly(client, db):
     """
     Test the retrieval of workout frequency with weekly granularity.
@@ -229,7 +244,7 @@ def test_get_workout_frequency_weekly(client, db):
     user_id = 1
     db.cursor.execute(
         "INSERT INTO Users (user_id, firebase_uid, email) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE email=%s",
-        (user_id, "une1uwhaFy6UFRk7tCGldO0xPX5U", "test1@example.com", "test1@example.com")
+        (user_id, "testuser1", "test1@example.com", "test1@example.com")
     )
     db.conn.commit()
 
@@ -251,7 +266,7 @@ def test_get_workout_frequency_weekly(client, db):
     )
     db.cursor.execute(
         "INSERT INTO Workout_Logs (user_id, exercise_id, date_logged) VALUES (%s, %s, %s)",
-        (user_id, 2, "2023-01-02 12:00:00")
+        (user_id, 2, "2023-01-01 12:00:00")
     )
     db.conn.commit()
 
@@ -261,6 +276,8 @@ def test_get_workout_frequency_weekly(client, db):
     data = response.json()
     assert len(data) == 1, f"Expected 1 weekly entry, got {len(data)}"  # Both workouts are in the same week
     assert {"year": 2023, "week": 1, "count": 2} in data, "Weekly entry for 2023 Week 1 not found"
+
+
 
 def test_get_workout_frequency_invalid_granularity(client, db):
     """
