@@ -20,9 +20,10 @@ function RegisterScreen(props) {
         console.log("CPassword", cPassword);
         if (!fName || !sName || !email || !cEmail || !password || !cPassword) {
             alert ("Please complete all fields")
-        } //else {
+        } 
+        // validate inputs here
         navigation.navigate('RegisterScreen2')
-        //}
+        
         
     }
     return (
