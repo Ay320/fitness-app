@@ -17,7 +17,7 @@ const MainScreen = () => {
   const navigation = useNavigation();
   const [user, setUser] = useState({ name: 'User', avatar: '', id: 1 });
   const [todayProgress, setTodayProgress] = useState({ calories: 0, duration: 0 });
-  const [workouts, setWorkouts] = useState([]);
+  const [workouts, setWorkouts] = useState([]); //fetch current plan upcoming workouts
   const [streak, setStreak] = useState(0);
 
   const trackStreak = (completedWorkout) => {
@@ -26,6 +26,7 @@ const MainScreen = () => {
     } else {
       setStreak(0);
     }
+    // increment streak here
   };
 
   useEffect(() => {
@@ -33,6 +34,9 @@ const MainScreen = () => {
       setWorkouts(exercises.slice(0, 10)); 
       setUser({ name: 'John Doe', avatar: 'https://via.placeholder.com/150' });
       setTodayProgress({ calories: 1200, duration: 45 });
+      // fetch current plan and display 
+      // fetch user name and profile picture
+      // fetch recent calories burned and minutes exercised
     };
 
     fetchWorkoutPlans();
@@ -53,6 +57,7 @@ useEffect(() => {
       { id: 1, name: 'Yoga', duration: 30, calories: 150, image: 'https://via.placeholder.com/100' },
       { id: 2, name: 'Strength Training', duration: 45, calories: 300, image: 'https://via.placeholder.com/100' },
     ]);
+    // fetch recent activity
   };
 
   fetchRecentActivity();
@@ -73,6 +78,7 @@ useEffect(() => {
           <TouchableOpacity onPress={() => navigation.navigate('ProfileScreen')}>
             <Image 
               source={{ uri: 'https://media.istockphoto.com/id/1451587807/vector/user-profile-icon-vector-avatar-or-person-icon-profile-picture-portrait-symbol-vector.jpg?s=612x612&w=0&k=20&c=yDJ4ITX1cHMh25Lt1vI1zBn2cAKKAlByHBvPJ8gEiIg=' }} 
+              // replace image with users profile picture
               style={styles.profileImage}
             />
           </TouchableOpacity>
