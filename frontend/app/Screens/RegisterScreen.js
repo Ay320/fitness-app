@@ -21,6 +21,15 @@ function RegisterScreen(props) {
         if (!fName || !sName || !email || !cEmail || !password || !cPassword) {
             alert ("Please complete all fields")
         } 
+        if (email !== cEmail) {
+            alert("Emails do not match.");
+            return;
+        }
+        if (password !== cPassword) {
+            alert("Passwords do not match.");
+            return;
+        }
+        
         // validate inputs here
         navigation.navigate('RegisterScreen2')
         
