@@ -11,6 +11,11 @@ function WelcomeScreen(props) {
     const handleLogin = () => {
         console.log("Email:", email);
         console.log("Password", password);
+        if (!email || !password) {
+            alert("Please enter both email and password.");
+            return;
+        }
+        
         // backend authentication here
         navigation.navigate("MainScreen")
     }
