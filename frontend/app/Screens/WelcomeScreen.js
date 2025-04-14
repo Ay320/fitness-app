@@ -11,6 +11,7 @@ function WelcomeScreen(props) {
     const handleLogin = () => {
         console.log("Email:", email);
         console.log("Password", password);
+        // backend authentication here
         navigation.navigate("MainScreen")
     }
 
