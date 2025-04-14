@@ -53,7 +53,7 @@ function RegisterScreen2() {
     if (!formData[field]) {
       alert(`Please enter your ${field}`);
       return;
-    }
+    } // validate input here
 
     if (formData.goal === "General Fitness" || formData.goal === "Endurance") {
         handleChange('formStep', formData.formStep + 2);
