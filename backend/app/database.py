@@ -332,6 +332,28 @@ class Database:
                 GROUP BY DATE(wl.date_logged)
             """, (user_id, start_date, end_date))
         return self.cursor.fetchall()
+    
+    # For Streaks:
+    def get_user_streak(self, user_id: int) -> dict:
+        """Fetch the user's current streak and last update date."""
+        self.cursor.execute(
+            "SELECT current_streak, last_streak_update FROM Users WHERE user_id = %s",
+            (user_id,)
+        )
+        result = self.cursor.fetchone()
+        if result is None:
+            raise ValueError(f"User with user_id {user_id} not found")
+        return dict(result)
+
+    def update_user_streak(self, user_id: int, streak: int, last_update: date):
+        """Update the user's streak and last update date."""
+        # Convert last_update to a string in 'YYYY-MM-DD' format
+        last_update_str = last_update.strftime('%Y-%m-%d')
+        self.cursor.execute(
+            "UPDATE Users SET current_streak = %s, last_streak_update = %s WHERE user_id = %s",
+            (streak, last_update_str, user_id)
+        )
+        self.conn.commit()
 
 def get_database():
     """Factory function to create a Database instance."""
