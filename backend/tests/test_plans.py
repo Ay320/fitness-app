@@ -8,15 +8,15 @@ def create_user(db: Database, firebase_uid: str, email: str):
     """Create a test user and return their user_id."""
     return db.sync_user(firebase_uid=firebase_uid, email=email)
 
-def create_exercise(db: Database, exercise_name: str, category: str, primary_muscle: str, sets: str = "3", reps: str = "10", duration: str = "30"):
+def create_exercise(db: Database, exercise_name: str, category: str, primary_muscle: str, secondary_muscle: str = None, sets: str = "3", reps: str = "10", duration: str = "30", equipment: str = None):
     """Create a test exercise and return its exercise_id, handling duplicates."""
     db.cursor.execute(
         """
-        INSERT INTO Workout_Exercises (exercise_name, category, primary_muscle, initial_recommended_sets, initial_recommended_reps, initial_recommended_time)
-        VALUES (%s, %s, %s, %s, %s, %s)
+        INSERT INTO Workout_Exercises (exercise_name, category, primary_muscle, secondary_muscle, initial_recommended_sets, initial_recommended_reps, initial_recommended_time, equipment)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         ON DUPLICATE KEY UPDATE exercise_id=LAST_INSERT_ID(exercise_id)
         """,
-        (exercise_name, category, primary_muscle, sets, reps, duration)
+        (exercise_name, category, primary_muscle, secondary_muscle, sets, reps, duration, equipment)
     )
     db.conn.commit()
     return db.cursor.lastrowid

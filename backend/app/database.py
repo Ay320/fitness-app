@@ -4,6 +4,7 @@ import logging
 from typing import List, Optional, Dict, Any
 import os
 import time  # Added for retry delay in get_db_connection
+from datetime import date
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -286,6 +287,51 @@ class Database:
                     self.conn.close()
             except:
                 pass
+    
+    # For workout recommender:
+    def get_user_by_id(self, user_id: int) -> Dict[str, Any] | None:
+        """Fetch user profile by user_id."""
+        self.cursor.execute("SELECT * FROM Users WHERE user_id = %s", (user_id,))
+        return self.cursor.fetchone()
+
+    def get_recent_workout_logs(self, user_id: int, weeks: int = 4) -> List[Dict[str, Any]]:
+        """Fetch recent workout logs for the user."""
+        self.cursor.execute("""
+            SELECT wl.*, we.primary_muscle
+            FROM Workout_Logs wl
+            JOIN Workout_Exercises we ON wl.exercise_id = we.exercise_id
+            WHERE wl.user_id = %s AND wl.date_logged >= DATE_SUB(CURDATE(), INTERVAL %s WEEK)
+        """, (user_id, weeks))
+        return self.cursor.fetchall()
+
+    def get_muscle_group_distribution(self, user_id: int, start_date: date, end_date: date) -> List[Dict[str, Any]]:
+        """Fetch muscle group distribution from workout logs."""
+        self.cursor.execute("""
+            SELECT we.primary_muscle AS muscle_group, COUNT(*) AS count
+            FROM Workout_Logs wl
+            JOIN Workout_Exercises we ON wl.exercise_id = we.exercise_id
+            WHERE wl.user_id = %s AND DATE(wl.date_logged) BETWEEN %s AND %s
+            GROUP BY we.primary_muscle
+        """, (user_id, start_date, end_date))
+        return self.cursor.fetchall()
+
+    def get_workout_frequency(self, user_id: int, start_date: date, end_date: date, granularity: str = "weekly") -> List[Dict[str, Any]]:
+        """Fetch workout frequency trend."""
+        if granularity == "weekly":
+            self.cursor.execute("""
+                SELECT YEAR(wl.date_logged) AS year, WEEK(wl.date_logged) AS week, COUNT(*) AS count
+                FROM Workout_Logs wl
+                WHERE wl.user_id = %s AND DATE(wl.date_logged) BETWEEN %s AND %s
+                GROUP BY YEAR(wl.date_logged), WEEK(wl.date_logged)
+            """, (user_id, start_date, end_date))
+        else:  # daily
+            self.cursor.execute("""
+                SELECT DATE(wl.date_logged) AS date, COUNT(*) AS count
+                FROM Workout_Logs wl
+                WHERE wl.user_id = %s AND DATE(wl.date_logged) BETWEEN %s AND %s
+                GROUP BY DATE(wl.date_logged)
+            """, (user_id, start_date, end_date))
+        return self.cursor.fetchall()
 
 def get_database():
     """Factory function to create a Database instance."""

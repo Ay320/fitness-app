@@ -1,10 +1,10 @@
-
-
 from fastapi import APIRouter, Depends, HTTPException
 from typing import List, Dict, Any
 from app.database import Database, get_database
 from app.dependencies import get_current_user
 from app.models.plans import Plan, PlanCreate, PlanUpdate, PlanDay, PlanDayCreate, PlanDayUpdate, PlanExercise, PlanExerciseCreate, Exercise, WorkoutLogCreate, WorkoutLog
+from app.models.plan_generator import GeneratePlanRequest, GeneratedPlan
+from app.services.workout_recommender import generate_workout_plan
 import logging
 from datetime import datetime
 
@@ -455,3 +455,33 @@ async def log_workout(
         "notes": workout_log.notes,
         "created_at": datetime.now()
     }
+
+
+# recommender endpoints:
+
+@router.post("/generate", response_model=GeneratedPlan, status_code=201)
+async def generate_plan(
+    request: GeneratePlanRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    db: Database = Depends(get_database)
+):
+    """Generate a new workout plan based on user inputs and preferences."""
+    user = db.get_user_by_firebase_uid(current_user["uid"])
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user_id = user["user_id"]
+
+    # Validate days_per_week
+    if not (1 <= request.days_per_week <= 7):
+        raise HTTPException(status_code=400, detail="days_per_week must be between 1 and 7")
+
+    # Generate the plan
+    plan = generate_workout_plan(
+        db=db,
+        user_id=user_id,
+        days_per_week=request.days_per_week,
+        preferences=request.preferences,
+        plan_name=request.plan_name,
+        description=request.description
+    )
+    return plan
