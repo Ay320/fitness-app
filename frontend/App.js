@@ -13,6 +13,7 @@ import ProfileScreen from './app/Screens/ProfileScreen';
 import SessionScreen from './app/Screens/SessionScreen';
 import AnalyticsScreen from './app/Screens/AnalyticsScreen';
 import PlanScreen from './app/Screens/PlanScreen';
+import EditPlanScreen from './app/Screens/EditPlanScreen';
 
 
 const Stack = createStackNavigator();
@@ -20,7 +21,7 @@ const Stack = createStackNavigator();
 export default function App() {
     return (
         <NavigationContainer>
-            <Stack.Navigator initialRouteName = "WelcomeScreen">
+            <Stack.Navigator initialRouteName = "EditPlanScreen">
                 <Stack.Screen name = "WelcomeScreen" component={WelcomeScreen} />
                 <Stack.Screen name = "RegisterScreen" component={RegisterScreen} /> 
                 <Stack.Screen name = "RegisterScreen2" component={RegisterScreen2} />
@@ -30,7 +31,8 @@ export default function App() {
                 <Stack.Screen name = "MainScreen" component = {MainScreen} />
                 <Stack.Screen name = "AnalyticsScreen" component = {AnalyticsScreen} />
                 <Stack.Screen name = "PlanScreen" component = {PlanScreen} />
-                <Stack.Screen name = "SessionScreen" component = {SessionScreen} />     
+                <Stack.Screen name = "SessionScreen" component = {SessionScreen} />   
+                <Stack.Screen name = "EditPlanScreen" component = {EditPlanScreen} />   
             </Stack.Navigator>
         </NavigationContainer>
     );

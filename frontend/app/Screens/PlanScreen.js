@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, LayoutAnimation, Platform, UIManager } from 'react-native';
+import {View,Text,TouchableOpacity,StyleSheet,ScrollView,LayoutAnimation,Platform, UIManager,} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { exercises } from './Exercises';
@@ -15,18 +15,18 @@ const samplePlans = [
     days: [
       {
         day: 'Monday',
-        exercises: ['1', '2']
+        exercises: ['1', '2'],
       },
       {
         day: 'Wednesday',
-        exercises: ['3', '4']
+        exercises: ['3', '4'],
       },
       {
         day: 'Friday',
-        exercises: ['5']
-      }
-    ]
-  }
+        exercises: ['5'],
+      },
+    ],
+  },
 ];
 
 const PlanScreen = () => {
@@ -34,17 +34,23 @@ const PlanScreen = () => {
   const [expandedDays, setExpandedDays] = useState({});
   const [workoutPlans, setWorkoutPlans] = useState(samplePlans);
 
-  const toggleDay = (index) => {
+  const toggleDay = (key) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpandedDays(prev => ({
+    setExpandedDays((prev) => ({
       ...prev,
-      [index]: !prev[index]
+      [key]: !prev[key],
     }));
   };
 
   const renderExerciseItem = (exerciseId) => {
-    const exercise = exercises.find(e => e.id === exerciseId);
-    if (!exercise) return null;
+    const exercise = exercises.find((e) => e.id === exerciseId.toString());
+    if (!exercise) {
+      return (
+        <Text key={exerciseId} style={styles.exerciseText}>
+          Unknown Exercise (ID: {exerciseId})
+        </Text>
+      );
+    }
 
     return (
       <TouchableOpacity
@@ -57,31 +63,29 @@ const PlanScreen = () => {
     );
   };
 
-  const renderDayItem = (plan, day, index) => (
-    <View key={index} style={styles.dayContainer}>
-      <TouchableOpacity onPress={() => toggleDay(index)} style={styles.dayHeader}>
-        <Text style={styles.dayTitle}>{day.day}</Text>
-        <Icon name={expandedDays[index] ? 'chevron-up' : 'chevron-down'} size={24} color="white" />
-      </TouchableOpacity>
-      {expandedDays[index] && (
-        <View style={styles.exerciseList}>
-          {day.exercises.map(renderExerciseItem)}
-        </View>
-      )}
-    </View>
-  );
+  const renderDayItem = (plan, day) => {
+    const key = `${plan.id}-${day.day}`;
+    return (
+      <View key={key} style={styles.dayContainer}>
+        <TouchableOpacity onPress={() => toggleDay(key)} style={styles.dayHeader}>
+          <Text style={styles.dayTitle}>{day.day}</Text>
+          <Icon name={expandedDays[key] ? 'chevron-up' : 'chevron-down'} size={24} color="white" />
+        </TouchableOpacity>
+        {expandedDays[key] && (
+          <View style={styles.exerciseList}>
+            {day.exercises.map(renderExerciseItem)}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   const renderCurrentPlan = () => {
     if (workoutPlans.length === 0) {
       return (
         <View style={styles.noPlansContainer}>
           <Text style={styles.noPlansText}>You don't have any workout plans yet.</Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('OtherPlansScreen')}
-            style={styles.createPlanButton}
-          >
-            <Text style={styles.createPlanText}>Select a Workout Plan</Text>
-          </TouchableOpacity>
+          <Text style={styles.chooseOptionText}>Choose an option below</Text>
         </View>
       );
     }
@@ -107,7 +111,7 @@ const PlanScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
-        {currentPlan.days.map((day, index) => renderDayItem(currentPlan, day, index))}
+        {currentPlan.days.map((day) => renderDayItem(currentPlan, day))}
       </View>
     );
   };
@@ -115,11 +119,19 @@ const PlanScreen = () => {
   return (
     <ScrollView style={styles.container}>
       {renderCurrentPlan()}
+
       <TouchableOpacity
         style={styles.otherPlansButton}
         onPress={() => navigation.navigate('OtherPlansScreen')}
       >
         <Text style={styles.otherPlansText}>Other Plans</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.createNewPlanButton}
+        onPress={() => navigation.navigate('CreatePlanScreen')}
+      >
+        <Text style={styles.createNewPlanText}>Create New Plan</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -193,6 +205,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  createNewPlanButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  createNewPlanText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   noPlansContainer: {
     alignItems: 'center',
     padding: 20,
@@ -200,18 +224,12 @@ const styles = StyleSheet.create({
   noPlansText: {
     color: 'white',
     fontSize: 16,
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  createPlanButton: {
-    backgroundColor: 'rgb(2, 77, 87)',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-  },
-  createPlanText: {
+  chooseOptionText: {
     color: 'white',
     fontSize: 14,
-    fontWeight: '600',
+    fontStyle: 'italic',
   },
 });
 
