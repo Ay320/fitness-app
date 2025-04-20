@@ -289,7 +289,7 @@ class Database:
                 pass
     
     # For workout recommender:
-    def get_user_by_id(self, user_id: int) -> Dict[str, Any] | None:
+    def get_user_by_id(self, user_id: int) -> Optional[Dict[str, Any]]:
         """Fetch user profile by user_id."""
         self.cursor.execute("SELECT * FROM Users WHERE user_id = %s", (user_id,))
         return self.cursor.fetchone()

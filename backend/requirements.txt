@@ -7,3 +7,4 @@ mysql-connector-python==8.3.0
 boto3==1.35.24  # For AWS Secrets Manager
 gunicorn==23.0.0  # Production server
 psutil==6.1.0  # For gunicorn process management
+freezegun==1.5.1
