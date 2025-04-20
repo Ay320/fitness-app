@@ -21,7 +21,7 @@ const Stack = createStackNavigator();
 export default function App() {
     return (
         <NavigationContainer>
-            <Stack.Navigator initialRouteName = "EditPlanScreen">
+            <Stack.Navigator initialRouteName = "WelcomeScreen">
                 <Stack.Screen name = "WelcomeScreen" component={WelcomeScreen} />
                 <Stack.Screen name = "RegisterScreen" component={RegisterScreen} /> 
                 <Stack.Screen name = "RegisterScreen2" component={RegisterScreen2} />
