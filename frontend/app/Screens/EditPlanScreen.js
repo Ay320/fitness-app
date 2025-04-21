@@ -14,14 +14,15 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 const EditPlanScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { plan } = route.params;
+  const isEditing = !!route.params?.plan;
+  const initialPlan = route.params?.plan || { name: '', days: [] };
 
-  const [planName, setPlanName] = useState(plan.name || '');
-  const [days, setDays] = useState(plan.days || []);
-  const [editingDayIndex, setEditingDayIndex] = useState(null);
+  const [planName, setPlanName] = useState(initialPlan.name);
+  const [days, setDays] = useState(initialPlan.days);
 
   const handleSave = () => {
-    console.log('Updated plan:', { name: planName, days });
+    const updatedPlan = { name: planName, days };
+    console.log(isEditing ? 'Updated plan:' : 'New plan:', updatedPlan);
     navigation.goBack();
   };
 
@@ -47,28 +48,28 @@ const EditPlanScreen = () => {
   };
 
   const addExerciseToDay = (dayIndex) => {
-    const updatedDays = [...days];
-    updatedDays[dayIndex].exercises.push('1'); // Default exercise ID
-    setDays(updatedDays);
+    navigation.navigate('WorkoutDetailsScreen', {
+      workoutId: '1', // You can set this to any valid default exercise ID
+      onSelectExercise: (selectedExerciseId) => {
+        const updatedDays = [...days];
+        updatedDays[dayIndex].exercises.push(selectedExerciseId);
+        setDays(updatedDays);
+      },
+    });
   };
 
   const addDay = () => {
+    const newDayIndex = days.length + 1;
     const newDay = {
-      day: `Day ${days.length + 1}`,
+      day: `Day ${newDayIndex}`,
       exercises: [],
     };
     setDays([...days, newDay]);
   };
 
-  const updateDayName = (text, index) => {
-    const updatedDays = [...days];
-    updatedDays[index].day = text;
-    setDays(updatedDays);
-  };
-
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>Edit Plan</Text>
+      <Text style={styles.title}>{isEditing ? 'Edit Plan' : 'Create New Plan'}</Text>
 
       <TextInput
         style={styles.input}
@@ -81,20 +82,7 @@ const EditPlanScreen = () => {
       {days.map((day, dayIndex) => (
         <View key={dayIndex} style={styles.dayContainer}>
           <View style={styles.dayHeader}>
-            {editingDayIndex === dayIndex ? (
-              <TextInput
-                style={styles.dayInput}
-                value={day.day}
-                onChangeText={(text) => updateDayName(text, dayIndex)}
-                onBlur={() => setEditingDayIndex(null)}
-                autoFocus
-              />
-            ) : (
-              <TouchableOpacity onPress={() => setEditingDayIndex(dayIndex)}>
-                <Text style={styles.dayTitle}>{day.day}</Text>
-              </TouchableOpacity>
-            )}
-
+            <Text style={styles.dayTitle}>{day.day}</Text>
             <TouchableOpacity onPress={() => deleteDay(dayIndex)}>
               <Icon name="trash-can" size={22} color="white" />
             </TouchableOpacity>
@@ -128,7 +116,9 @@ const EditPlanScreen = () => {
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-        <Text style={styles.saveButtonText}>Save Plan</Text>
+        <Text style={styles.saveButtonText}>
+          {isEditing ? 'Save Plan' : 'Create Plan'}
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -169,14 +159,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: 'white',
-  },
-  dayInput: {
-    backgroundColor: '#333',
-    color: 'white',
-    padding: 6,
-    borderRadius: 6,
-    fontSize: 16,
-    width: 150,
   },
   exerciseItem: {
     flexDirection: 'row',
