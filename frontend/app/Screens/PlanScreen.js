@@ -129,7 +129,7 @@ const PlanScreen = () => {
 
       <TouchableOpacity
         style={styles.createNewPlanButton}
-        onPress={() => navigation.navigate('CreatePlanScreen')}
+        onPress={() => navigation.navigate('EditPlanScreen')}
       >
         <Text style={styles.createNewPlanText}>Create New Plan</Text>
       </TouchableOpacity>
