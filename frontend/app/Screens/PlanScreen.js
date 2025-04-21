@@ -9,24 +9,7 @@ if (Platform.OS === 'android') {
 }
 
 const samplePlans = [
-  {
-    id: 1,
-    name: 'Full Body Plan',
-    days: [
-      {
-        day: 'Monday',
-        exercises: ['1', '2'],
-      },
-      {
-        day: 'Wednesday',
-        exercises: ['3', '4'],
-      },
-      {
-        day: 'Friday',
-        exercises: ['5'],
-      },
-    ],
-  },
+  
 ];
 
 const PlanScreen = () => {
