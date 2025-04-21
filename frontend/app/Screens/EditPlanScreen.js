@@ -1,111 +1,89 @@
 import React, { useState } from 'react';
-import {View,Text,TextInput,TouchableOpacity,FlatList,StyleSheet,Alert,ScrollView,} from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 const EditPlanScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
   const { plan } = route.params;
 
-  const [planName, setPlanName] = useState(plan.name);
-  const [days, setDays] = useState(plan.days);
+  const [planName, setPlanName] = useState(plan[0].name);
+  const [days, setDays] = useState(plan[0].days);
 
-  const updateDayName = (index, newDayName) => {
+  const handleAddExercise = (dayIndex) => {
     const updated = [...days];
-    updated[index].day = newDayName;
+    updated[dayIndex].exercises.push('1'); // Add placeholder exercise
     setDays(updated);
   };
 
-  const removeDay = (index) => {
-    Alert.alert(
-      'Remove Day',
-      `Are you sure you want to remove ${days[index].day}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          onPress: () => {
-            const updated = [...days];
-            updated.splice(index, 1);
-            setDays(updated);
-          },
-          style: 'destructive',
-        },
-      ]
-    );
-  };
-
-  const removeExercise = (dayIndex, exerciseIndex) => {
+  const handleRemoveExercise = (dayIndex, exerciseIndex) => {
     const updated = [...days];
     updated[dayIndex].exercises.splice(exerciseIndex, 1);
     setDays(updated);
   };
 
-  const addDay = () => {
-    setDays([...days, { day: `New Day ${days.length + 1}`, exercises: [] }]);
-  };
-
-  const saveChanges = () => {
+  const handleSave = () => {
     const updatedPlan = {
-      ...plan,
+      ...plan[0],
       name: planName,
-      days,
+      days: days,
     };
 
-    //Update plans using API
-    console.log('Updated plan:', updatedPlan);
-    Alert.alert('Saved!', 'Your plan has been updated.');
-    navigation.goBack();
+    console.log('Updated Plan:', updatedPlan);
+    // Later: Send to backend or store
+
+    navigation.goBack(); // Go back to PlanScreen
   };
 
   return (
     <ScrollView style={styles.container}>
+      <Text style={styles.title}>Edit Workout Plan</Text>
+
       <Text style={styles.label}>Plan Name</Text>
       <TextInput
         value={planName}
         onChangeText={setPlanName}
-        placeholder="Enter plan name"
         style={styles.input}
-        placeholderTextColor="#888"
+        placeholder="Enter Plan Name"
+        placeholderTextColor="#aaa"
       />
 
-      <Text style={styles.label}>Workout Days</Text>
-      {days.map((day, index) => (
-        <View key={index} style={styles.dayContainer}>
-          <View style={styles.dayHeader}>
-            <TextInput
-              value={day.day}
-              onChangeText={(text) => updateDayName(index, text)}
-              style={styles.dayInput}
-              placeholder="Day Name"
-              placeholderTextColor="#888"
-            />
-            <TouchableOpacity onPress={() => removeDay(index)}>
-              <Icon name="trash-can" size={20} color="#ff4d4d" />
-            </TouchableOpacity>
-          </View>
+      <Text style={styles.label}>Edit Days</Text>
+      {days.map((day, dayIndex) => (
+        <View key={dayIndex} style={styles.dayContainer}>
+          <Text style={styles.dayTitle}>{day.day}</Text>
 
-          {day.exercises.length === 0 ? (
-            <Text style={styles.noExerciseText}>No exercises</Text>
-          ) : (
-            day.exercises.map((exId, exIndex) => (
-              <View key={exIndex} style={styles.exerciseRow}>
-                <Text style={styles.exerciseText}>Exercise ID: {exId}</Text>
-                <TouchableOpacity onPress={() => removeExercise(index, exIndex)}>
-                  <Icon name="close" size={18} color="#ff4d4d" />
-                </TouchableOpacity>
-              </View>
-            ))
+          {day.exercises.length === 0 && (
+            <Text style={styles.noExercise}>No exercises yet.</Text>
           )}
+
+          {day.exercises.map((exId, exIndex) => (
+            <View key={exIndex} style={styles.exerciseRow}>
+              <Text style={styles.exerciseText}>Exercise ID: {exId}</Text>
+              <TouchableOpacity onPress={() => handleRemoveExercise(dayIndex, exIndex)}>
+                <Icon name="close" size={20} color="#ff4d4d" />
+              </TouchableOpacity>
+            </View>
+          ))}
+
+          <TouchableOpacity
+            onPress={() => handleAddExercise(dayIndex)}
+            style={styles.addButton}
+          >
+            <Text style={styles.addButtonText}>+ Add Exercise</Text>
+          </TouchableOpacity>
         </View>
       ))}
 
-      <TouchableOpacity style={styles.addButton} onPress={addDay}>
-        <Text style={styles.addButtonText}>+ Add Day</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.saveButton} onPress={saveChanges}>
+      <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
         <Text style={styles.saveButtonText}>Save Changes</Text>
       </TouchableOpacity>
     </ScrollView>
@@ -114,70 +92,73 @@ const EditPlanScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'black',
-    padding: 20,
     flex: 1,
+    backgroundColor: 'black',
+    padding: 16,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 12,
   },
   label: {
     color: 'white',
-    fontSize: 18,
-    marginBottom: 8,
-    fontWeight: 'bold',
+    marginTop: 12,
+    fontSize: 16,
+    fontWeight: '600',
   },
   input: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#222',
     color: 'white',
-    borderRadius: 8,
     padding: 10,
-    marginBottom: 20,
+    borderRadius: 8,
+    marginTop: 6,
   },
   dayContainer: {
     backgroundColor: '#1a1a1a',
-    padding: 12,
     borderRadius: 8,
-    marginBottom: 16,
+    padding: 12,
+    marginTop: 16,
   },
-  dayHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  dayInput: {
+  dayTitle: {
     color: 'white',
-    fontSize: 16,
-    borderBottomColor: '#444',
-    borderBottomWidth: 1,
-    flex: 1,
-    marginRight: 10,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  noExercise: {
+    color: 'gray',
+    fontStyle: 'italic',
   },
   exerciseRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 6,
+    backgroundColor: '#333',
+    borderRadius: 6,
+    padding: 8,
+    marginBottom: 6,
   },
   exerciseText: {
     color: 'white',
   },
-  noExerciseText: {
-    color: '#aaa',
-    marginTop: 6,
-  },
   addButton: {
-    backgroundColor: '#007bff',
-    padding: 12,
-    borderRadius: 8,
+    marginTop: 10,
+    backgroundColor: '#333',
+    borderRadius: 6,
+    padding: 8,
     alignItems: 'center',
-    marginBottom: 16,
   },
   addButtonText: {
-    color: 'white',
-    fontWeight: '600',
+    color: '#00ccff',
+    fontWeight: 'bold',
   },
   saveButton: {
-    backgroundColor: '#28a745',
-    padding: 14,
+    backgroundColor: '#4CAF50',
+    paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
+    marginTop: 24,
   },
   saveButtonText: {
     color: 'white',

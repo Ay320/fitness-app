@@ -98,7 +98,7 @@ const PlanScreen = () => {
           <Text style={styles.planTitle}>Current Plan</Text>
           <View style={styles.iconContainer}>
             <TouchableOpacity
-              onPress={() => navigation.navigate('EditPlanScreen')}
+              onPress={() => navigation.navigate('EditPlanScreen', {plan: samplePlans[0]})}
               style={styles.iconButton}
             >
               <Icon name="pencil" size={22} color="white" />
