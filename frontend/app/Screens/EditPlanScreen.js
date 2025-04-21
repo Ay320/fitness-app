@@ -2,89 +2,133 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
   TextInput,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 const EditPlanScreen = () => {
-  const route = useRoute();
   const navigation = useNavigation();
+  const route = useRoute();
   const { plan } = route.params;
 
-  const [planName, setPlanName] = useState(plan[0].name);
-  const [days, setDays] = useState(plan[0].days);
-
-  const handleAddExercise = (dayIndex) => {
-    const updated = [...days];
-    updated[dayIndex].exercises.push('1'); // Add placeholder exercise
-    setDays(updated);
-  };
-
-  const handleRemoveExercise = (dayIndex, exerciseIndex) => {
-    const updated = [...days];
-    updated[dayIndex].exercises.splice(exerciseIndex, 1);
-    setDays(updated);
-  };
+  const [planName, setPlanName] = useState(plan.name || '');
+  const [days, setDays] = useState(plan.days || []);
+  const [editingDayIndex, setEditingDayIndex] = useState(null);
 
   const handleSave = () => {
-    const updatedPlan = {
-      ...plan[0],
-      name: planName,
-      days: days,
+    console.log('Updated plan:', { name: planName, days });
+    navigation.goBack();
+  };
+
+  const deleteDay = (index) => {
+    Alert.alert('Delete Day', 'Are you sure you want to delete this day?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          const updatedDays = [...days];
+          updatedDays.splice(index, 1);
+          setDays(updatedDays);
+        },
+      },
+    ]);
+  };
+
+  const deleteExercise = (dayIndex, exerciseIndex) => {
+    const updatedDays = [...days];
+    updatedDays[dayIndex].exercises.splice(exerciseIndex, 1);
+    setDays(updatedDays);
+  };
+
+  const addExerciseToDay = (dayIndex) => {
+    const updatedDays = [...days];
+    updatedDays[dayIndex].exercises.push('1'); // Default exercise ID
+    setDays(updatedDays);
+  };
+
+  const addDay = () => {
+    const newDay = {
+      day: `Day ${days.length + 1}`,
+      exercises: [],
     };
+    setDays([...days, newDay]);
+  };
 
-    console.log('Updated Plan:', updatedPlan);
-    // Later: Send to backend or store
-
-    navigation.goBack(); // Go back to PlanScreen
+  const updateDayName = (text, index) => {
+    const updatedDays = [...days];
+    updatedDays[index].day = text;
+    setDays(updatedDays);
   };
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>Edit Workout Plan</Text>
+      <Text style={styles.title}>Edit Plan</Text>
 
-      <Text style={styles.label}>Plan Name</Text>
       <TextInput
+        style={styles.input}
+        placeholder="Plan Name"
+        placeholderTextColor="#aaa"
         value={planName}
         onChangeText={setPlanName}
-        style={styles.input}
-        placeholder="Enter Plan Name"
-        placeholderTextColor="#aaa"
       />
 
-      <Text style={styles.label}>Edit Days</Text>
       {days.map((day, dayIndex) => (
         <View key={dayIndex} style={styles.dayContainer}>
-          <Text style={styles.dayTitle}>{day.day}</Text>
+          <View style={styles.dayHeader}>
+            {editingDayIndex === dayIndex ? (
+              <TextInput
+                style={styles.dayInput}
+                value={day.day}
+                onChangeText={(text) => updateDayName(text, dayIndex)}
+                onBlur={() => setEditingDayIndex(null)}
+                autoFocus
+              />
+            ) : (
+              <TouchableOpacity onPress={() => setEditingDayIndex(dayIndex)}>
+                <Text style={styles.dayTitle}>{day.day}</Text>
+              </TouchableOpacity>
+            )}
 
-          {day.exercises.length === 0 && (
-            <Text style={styles.noExercise}>No exercises yet.</Text>
-          )}
+            <TouchableOpacity onPress={() => deleteDay(dayIndex)}>
+              <Icon name="trash-can" size={22} color="white" />
+            </TouchableOpacity>
+          </View>
 
-          {day.exercises.map((exId, exIndex) => (
-            <View key={exIndex} style={styles.exerciseRow}>
-              <Text style={styles.exerciseText}>Exercise ID: {exId}</Text>
-              <TouchableOpacity onPress={() => handleRemoveExercise(dayIndex, exIndex)}>
-                <Icon name="close" size={20} color="#ff4d4d" />
+          {day.exercises.map((exerciseId, exIndex) => (
+            <View key={exIndex} style={styles.exerciseItem}>
+              <Text style={styles.exerciseText}>Exercise ID: {exerciseId}</Text>
+              <TouchableOpacity
+                onPress={() => deleteExercise(dayIndex, exIndex)}
+                style={styles.deleteExerciseButton}
+              >
+                <Icon name="close" size={18} color="white" />
               </TouchableOpacity>
             </View>
           ))}
 
           <TouchableOpacity
-            onPress={() => handleAddExercise(dayIndex)}
-            style={styles.addButton}
+            style={styles.addExerciseButton}
+            onPress={() => addExerciseToDay(dayIndex)}
           >
-            <Text style={styles.addButtonText}>+ Add Exercise</Text>
+            <Icon name="plus" size={18} color="white" />
+            <Text style={styles.addExerciseText}>Add Exercise</Text>
           </TouchableOpacity>
         </View>
       ))}
 
-      <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
-        <Text style={styles.saveButtonText}>Save Changes</Text>
+      <TouchableOpacity style={styles.addDayButton} onPress={addDay}>
+        <Icon name="plus" size={20} color="white" />
+        <Text style={styles.addDayText}>Add Day</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+        <Text style={styles.saveButtonText}>Save Plan</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -97,60 +141,86 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
+    color: 'white',
     fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 12,
-  },
-  label: {
-    color: 'white',
-    marginTop: 12,
-    fontSize: 16,
-    fontWeight: '600',
+    marginBottom: 16,
   },
   input: {
-    backgroundColor: '#222',
+    backgroundColor: '#1e1e1e',
     color: 'white',
-    padding: 10,
+    padding: 12,
     borderRadius: 8,
-    marginTop: 6,
+    marginBottom: 20,
   },
   dayContainer: {
     backgroundColor: '#1a1a1a',
     borderRadius: 8,
-    padding: 12,
-    marginTop: 16,
+    padding: 14,
+    marginBottom: 16,
+  },
+  dayHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   dayTitle: {
-    color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 8,
+    color: 'white',
   },
-  noExercise: {
-    color: 'gray',
-    fontStyle: 'italic',
+  dayInput: {
+    backgroundColor: '#333',
+    color: 'white',
+    padding: 6,
+    borderRadius: 6,
+    fontSize: 16,
+    width: 150,
   },
-  exerciseRow: {
+  exerciseItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     backgroundColor: '#333',
+    padding: 10,
     borderRadius: 6,
-    padding: 8,
     marginBottom: 6,
   },
   exerciseText: {
     color: 'white',
+    fontSize: 16,
   },
-  addButton: {
-    marginTop: 10,
-    backgroundColor: '#333',
-    borderRadius: 6,
-    padding: 8,
+  deleteExerciseButton: {
+    paddingHorizontal: 8,
+  },
+  addExerciseButton: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 10,
+    backgroundColor: '#444',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
   },
-  addButtonText: {
-    color: '#00ccff',
+  addExerciseText: {
+    color: 'white',
+    marginLeft: 6,
+    fontSize: 14,
+  },
+  addDayButton: {
+    backgroundColor: '#0288D1',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginBottom: 16,
+  },
+  addDayText: {
+    color: 'white',
+    fontSize: 16,
+    marginLeft: 8,
     fontWeight: 'bold',
   },
   saveButton: {
@@ -158,7 +228,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 24,
   },
   saveButtonText: {
     color: 'white',
