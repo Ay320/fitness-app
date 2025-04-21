@@ -48,8 +48,8 @@ const EditPlanScreen = () => {
   };
 
   const addExerciseToDay = (dayIndex) => {
-    navigation.navigate('WorkoutDetailsScreen', {
-      workoutId: '1', // You can set this to any valid default exercise ID
+    navigation.navigate('FindWorkoutScreen', {
+      workoutId: '1', 
       onSelectExercise: (selectedExerciseId) => {
         const updatedDays = [...days];
         updatedDays[dayIndex].exercises.push(selectedExerciseId);
