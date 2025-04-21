@@ -1,5 +1,5 @@
 from app.database import Database
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union, Optional
 from datetime import date, timedelta
 
 # Dictionary to map leg exercises to their primary focus (since database doesn't specify)
@@ -61,7 +61,7 @@ def select_exercises(
     preferences: Dict[str, List[str]],
     experience_level: str,
     goal: str,
-    exercise_count: Dict[str, int] | int
+    exercise_count: Union[Dict[str, int], int]
 ) -> List[Dict[str, Any]]:
     """
     Select exercises for the given muscle groups, respecting preferences and user profile.
@@ -221,9 +221,9 @@ def generate_workout_plan(
     db: Database,
     user_id: int,
     days_per_week: int,
-    preferences: Dict[str, List[str]] | None,
-    plan_name: str | None,
-    description: str | None
+    preferences: Optional[Dict[str, List[str]]],
+    plan_name: Optional[str],
+    description: Optional[str]
 ) -> "GeneratedPlan":
     """
     Generate a static workout plan based on user inputs and store it in the database.

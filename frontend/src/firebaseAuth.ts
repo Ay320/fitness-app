@@ -29,6 +29,7 @@ export const signIn = async (email: string, password: string): Promise<AuthState
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     const token = await user.getIdToken();
+    console.log('Firebase Token:', token); // Log the token
     return { user, token };
   } catch (error: any) {
     throw new Error(`Sign-in failed: ${error.message}`);
