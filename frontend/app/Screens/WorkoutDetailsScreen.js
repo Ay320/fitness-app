@@ -4,7 +4,13 @@ import { useNavigation } from '@react-navigation/native';
 import { exercises } from './Exercises';
 
 function WorkoutDetailsScreen({ route }) {
-    const { workoutId, favourites: initialFavourites, toggleFavourite } = route.params;
+    const {
+        workoutId,
+        favourites: initialFavourites,
+        toggleFavourite,
+        onSelectExercise,
+    } = route.params;
+
     const [favourites, setFavourites] = useState(initialFavourites || []);
     const [workout, setWorkout] = useState(null);
     const navigation = useNavigation();
@@ -19,11 +25,16 @@ function WorkoutDetailsScreen({ route }) {
             ? favourites.filter(id => id !== workoutId)
             : [...favourites, workoutId];
         setFavourites(updatedFavourites);
-        toggleFavourite(workoutId);
+        toggleFavourite?.(workoutId); // optional chaining for robustness
     };
 
     const handleAddToSchedule = () => {
-        navigation.navigate('PlanScreen', { workout });
+        if (onSelectExercise) {
+            onSelectExercise(workout.id);
+            navigation.goBack();
+        } else {
+            navigation.navigate('PlanScreen', { workout });
+        }
     };
 
     if (!workout) {
