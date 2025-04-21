@@ -20,7 +20,7 @@ function FindWorkoutScreen() {
           (filter === 'All' || ex.category === filter) &&
           (muscleFilter === 'All' || ex.primMusc === muscleFilter || ex.secondMusc === muscleFilter) &&
           (difficultyFilter === 'All' || ex.diffLvl === difficultyFilter) &&
-          (!favouritesOnly || favourites.includes(ex.id)) // Favourites filter toggle
+          (!favouritesOnly || favourites.includes(ex.id)) 
       );
 
       setFilteredExercises(results);
@@ -42,7 +42,6 @@ function FindWorkoutScreen() {
               onChangeText={setSearch}
           />
 
-          {/* Horizontal Filter Row */}
           <View style={styles.filtersContainer}>
               <Picker selectedValue={filter} style={styles.picker} onValueChange={setFilter}>
                   <Picker.Item label='All' value='All' />
@@ -70,7 +69,6 @@ function FindWorkoutScreen() {
                   <Picker.Item label='Advanced' value='Advanced' />
               </Picker>
 
-              {/* Favourite Star Toggle */}
               <TouchableOpacity onPress={() => setFavouritesOnly(!favouritesOnly)}>
                   <Text style={[styles.favouriteStar, favouritesOnly && styles.activeStar]}>
                       {favouritesOnly ? '★' : '☆'}
