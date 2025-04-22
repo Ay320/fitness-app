@@ -36,7 +36,7 @@ const PlansScreen = () => {
         },
       });
       Alert.alert('Success', `Plan "${generated.name}" created!`);
-      fetchUserPlans(); // refresh list
+      fetchUserPlans(); 
     } catch (err: any) {
       Alert.alert('Generation Error', err.message);
     }
