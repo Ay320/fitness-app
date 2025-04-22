@@ -1,122 +1,94 @@
-import React, { useState } from 'react';
-import {View,Text,TouchableOpacity,StyleSheet,ScrollView,LayoutAnimation,Platform, UIManager,} from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import React, { useEffect, useState } from 'react';
+import { View, Text, Button, FlatList, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
+import { getPlans, generatePlan, setPlanActive } from '../api/planApi'; // Adjust path as needed
 import { useNavigation } from '@react-navigation/native';
-import { exercises } from './Exercises';
 
-if (Platform.OS === 'android') {
-  UIManager.setLayoutAnimationEnabledExperimental?.(true);
-}
-
-const samplePlans = [
-  
-];
-
-const PlanScreen = () => {
+const PlansScreen = () => {
+  const [plans, setPlans] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState('your_token_here'); // Replace with context or secure storage
   const navigation = useNavigation();
-  const [expandedDays, setExpandedDays] = useState({});
-  const [workoutPlans, setWorkoutPlans] = useState(samplePlans);
 
-  const toggleDay = (key) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpandedDays((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  };
+  useEffect(() => {
+    fetchUserPlans();
+  }, []);
 
-  const renderExerciseItem = (exerciseId) => {
-    const exercise = exercises.find((e) => e.id === exerciseId.toString());
-    if (!exercise) {
-      return (
-        <Text key={exerciseId} style={styles.exerciseText}>
-          Unknown Exercise (ID: {exerciseId})
-        </Text>
-      );
+  const fetchUserPlans = async () => {
+    try {
+      const fetchedPlans = await getPlans(token);
+      setPlans(fetchedPlans);
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+    } finally {
+      setLoading(false);
     }
-
-    return (
-      <TouchableOpacity
-        key={exercise.id}
-        style={styles.exerciseItem}
-        onPress={() => navigation.navigate('SessionScreen', { id: exercise.id })}
-      >
-        <Text style={styles.exerciseText}>{exercise.name}</Text>
-      </TouchableOpacity>
-    );
   };
 
-  const renderDayItem = (plan, day) => {
-    const key = `${plan.id}-${day.day}`;
-    return (
-      <View key={key} style={styles.dayContainer}>
-        <TouchableOpacity onPress={() => toggleDay(key)} style={styles.dayHeader}>
-          <Text style={styles.dayTitle}>{day.day}</Text>
-          <Icon name={expandedDays[key] ? 'chevron-up' : 'chevron-down'} size={24} color="white" />
-        </TouchableOpacity>
-        {expandedDays[key] && (
-          <View style={styles.exerciseList}>
-            {day.exercises.map(renderExerciseItem)}
-          </View>
-        )}
-      </View>
-    );
-  };
-
-  const renderCurrentPlan = () => {
-    if (workoutPlans.length === 0) {
-      return (
-        <View style={styles.noPlansContainer}>
-          <Text style={styles.noPlansText}>You don't have any workout plans yet.</Text>
-          <Text style={styles.chooseOptionText}>Choose an option below</Text>
-        </View>
-      );
+  const handleGeneratePlan = async () => {
+    try {
+      const generated = await generatePlan(token, {
+        days_per_week: 3,
+        plan_name: 'New AI Plan',
+        description: 'Generated using preferences',
+        preferences: {
+          primary_muscles: ['chest', 'back'],
+          equipment: ['dumbbell'],
+        },
+      });
+      Alert.alert('Success', `Plan "${generated.name}" created!`);
+      fetchUserPlans(); // refresh list
+    } catch (err: any) {
+      Alert.alert('Generation Error', err.message);
     }
-
-    const currentPlan = workoutPlans[0];
-
-    return (
-      <View style={styles.planContainer}>
-        <View style={styles.planHeader}>
-          <Text style={styles.planTitle}>Current Plan</Text>
-          <View style={styles.iconContainer}>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('EditPlanScreen', {plan: samplePlans[0]})}
-              style={styles.iconButton}
-            >
-              <Icon name="pencil" size={22} color="white" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setWorkoutPlans([])}
-              style={styles.iconButton}
-            >
-              <Icon name="trash-can" size={22} color="white" />
-            </TouchableOpacity>
-          </View>
-        </View>
-        {currentPlan.days.map((day) => renderDayItem(currentPlan, day))}
-      </View>
-    );
   };
+
+  const handleSetActive = async (planId: number) => {
+    try {
+      await setPlanActive(token, planId);
+      Alert.alert('Active', 'Plan set as active!');
+      fetchUserPlans(); // refresh state
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+    }
+  };
+
+  const goToPlanDetails = (planId: number) => {
+    navigation.navigate('PlanDetails', { planId });
+  };
+
+  if (loading) {
+    return <ActivityIndicator size="large" />;
+  }
 
   return (
-    <ScrollView style={styles.container}>
-      {renderCurrentPlan()}
+    <View style={{ padding: 20 }}>
+      <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20 }}>Your Plans</Text>
 
-      <TouchableOpacity
-        style={styles.otherPlansButton}
-        onPress={() => navigation.navigate('OtherPlansScreen')}
-      >
-        <Text style={styles.otherPlansText}>Other Plans</Text>
-      </TouchableOpacity>
+      <Button title="Generate New Plan" onPress={handleGeneratePlan} />
 
-      <TouchableOpacity
-        style={styles.createNewPlanButton}
-        onPress={() => navigation.navigate('EditPlanScreen')}
-      >
-        <Text style={styles.createNewPlanText}>Create New Plan</Text>
-      </TouchableOpacity>
-    </ScrollView>
+      <FlatList
+        data={plans}
+        keyExtractor={(item) => item.plan_id.toString()}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={{
+              padding: 15,
+              marginVertical: 10,
+              borderWidth: 1,
+              borderRadius: 8,
+              backgroundColor: item.is_active ? '#d4edda' : '#f8f9fa',
+            }}
+            onPress={() => goToPlanDetails(item.plan_id)}
+            onLongPress={() => handleSetActive(item.plan_id)}
+          >
+            <Text style={{ fontWeight: 'bold' }}>{item.name}</Text>
+            <Text>{item.description}</Text>
+            <Text>Days/Week: {item.days_per_week}</Text>
+            {item.is_active && <Text style={{ color: 'green' }}>Active</Text>}
+          </TouchableOpacity>
+        )}
+      />
+    </View>
   );
 };
 
