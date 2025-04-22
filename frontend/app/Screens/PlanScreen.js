@@ -6,7 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 const PlansScreen = () => {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState('your_token_here'); // Replace with context or secure storage
+  const [token, setToken] = useState('your_token_here'); 
   const navigation = useNavigation();
 
   useEffect(() => {
