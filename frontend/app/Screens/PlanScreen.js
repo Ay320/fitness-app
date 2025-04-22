@@ -17,7 +17,7 @@ const PlansScreen = () => {
     try {
       const fetchedPlans = await getPlans(token);
       setPlans(fetchedPlans);
-    } catch (err: any) {
+    } catch (err) {
       Alert.alert('Error', err.message);
     } finally {
       setLoading(false);
@@ -37,22 +37,22 @@ const PlansScreen = () => {
       });
       Alert.alert('Success', `Plan "${generated.name}" created!`);
       fetchUserPlans(); 
-    } catch (err: any) {
+    } catch (err) {
       Alert.alert('Generation Error', err.message);
     }
   };
 
-  const handleSetActive = async (planId: number) => {
+  const handleSetActive = async (planId) => {
     try {
       await setPlanActive(token, planId);
       Alert.alert('Active', 'Plan set as active!');
-      fetchUserPlans(); // refresh state
-    } catch (err: any) {
+      fetchUserPlans(); 
+    } catch (err) {
       Alert.alert('Error', err.message);
     }
   };
 
-  const goToPlanDetails = (planId: number) => {
+  const goToPlanDetails = (planId) => {
     navigation.navigate('PlanDetails', { planId });
   };
 
