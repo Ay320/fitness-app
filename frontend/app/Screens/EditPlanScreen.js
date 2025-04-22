@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { createPlan, updatePlan } from '../api/plans';
 
 const EditPlanScreen = () => {
   const navigation = useNavigation();
@@ -20,10 +21,22 @@ const EditPlanScreen = () => {
   const [planName, setPlanName] = useState(initialPlan.name);
   const [days, setDays] = useState(initialPlan.days);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const updatedPlan = { name: planName, days };
-    console.log(isEditing ? 'Updated plan:' : 'New plan:', updatedPlan);
-    navigation.goBack();
+
+    try {
+      if (isEditing) {
+        await updatePlan(initialPlan.id, updatedPlan); // assuming `id` exists
+        console.log('Updated plan:', updatedPlan);
+      } else {
+        await createPlan(updatedPlan);
+        console.log('New plan:', updatedPlan);
+      }
+      navigation.goBack();
+    } catch (error) {
+      console.error('Failed to save plan:', error);
+      Alert.alert('Error', 'Something went wrong while saving the plan.');
+    }
   };
 
   const deleteDay = (index) => {
@@ -49,7 +62,7 @@ const EditPlanScreen = () => {
 
   const addExerciseToDay = (dayIndex) => {
     navigation.navigate('FindWorkoutScreen', {
-      workoutId: '1', 
+      workoutId: '1',
       onSelectExercise: (selectedExerciseId) => {
         const updatedDays = [...days];
         updatedDays[dayIndex].exercises.push(selectedExerciseId);
