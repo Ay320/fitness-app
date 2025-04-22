@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Button, FlatList, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
-import { getPlans, generatePlan, setPlanActive } from '../api/planApi'; // Adjust path as needed
+import { getPlans, generatePlan, setPlanActive } from '../api/plans';
 import { useNavigation } from '@react-navigation/native';
 
 const PlansScreen = () => {
