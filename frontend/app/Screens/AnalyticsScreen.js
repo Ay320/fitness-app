@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
 import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
-import { Dimensions } from 'react-native';
+import {getWorkoutsByType,getWorkoutsByMuscleGroup,getWeightHistory,getDailyWorkoutFrequency} from '../../src/api/stats';
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -14,44 +14,39 @@ const AnalyticsScreen = ({ token }) => {
 
   useEffect(() => {
     const fetchData = async () => {
-      setWorkoutTypeData([
-        { type: 'Cardio', count: 8 },
-        { type: 'Strength', count: 12 },
-        { type: 'Flexibility', count: 5 },
-      ]);
+      setLoading(true);
 
-      setMuscleGroupData([
-        { muscle_group: 'Chest', count: 6 },
-        { muscle_group: 'Back', count: 7 },
-        { muscle_group: 'Legs', count: 5 },
-        { muscle_group: 'Arms', count: 4 },
-      ]);
+      const today = new Date();
+      const pastDate = new Date();
+      pastDate.setDate(today.getDate() - 30); 
 
-      setWeightHistory([
-        { date: '2025-03-01', weight: 70 },
-        { date: '2025-03-10', weight: 69.5 },
-        { date: '2025-03-20', weight: 69 },
-        { date: '2025-03-30', weight: 68.8 },
-        { date: '2025-04-10', weight: 68.5 },
-      ]);
+      const formatDate = (date) => date.toISOString().split('T')[0];
+      const startDate = formatDate(pastDate);
+      const endDate = formatDate(today);
 
-      setWorkoutFrequency([
-        { date: '2025-04-01', count: 1 },
-        { date: '2025-04-02', count: 0 },
-        { date: '2025-04-03', count: 1 },
-        { date: '2025-04-04', count: 2 },
-        { date: '2025-04-05', count: 1 },
-        { date: '2025-04-06', count: 1 },
-        { date: '2025-04-07', count: 0 },
-      ]);
+      try {
+        const [types, muscles, weights, frequency] = await Promise.all([
+          getWorkoutsByType(token, startDate, endDate),
+          getWorkoutsByMuscleGroup(token, startDate, endDate),
+          getWeightHistory(token, startDate, endDate),
+          getDailyWorkoutFrequency(token, startDate, endDate),
+        ]);
 
-      setLoading(false);
+        setWorkoutTypeData(types);
+        setMuscleGroupData(muscles);
+        setWeightHistory(weights);
+        setWorkoutFrequency(frequency);
+      } catch (error) {
+        console.error(error.message);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchData();
-  }, []);
+  }, [token]);
 
-  if (loading) return <ActivityIndicator size="large" color="#0000ff" />;
+  if (loading) return <ActivityIndicator size="large" color="#0000ff" style={{ marginTop: 50 }} />;
 
   return (
     <ScrollView style={{ padding: 20 }}>
@@ -67,12 +62,7 @@ const AnalyticsScreen = ({ token }) => {
         }}
         width={screenWidth - 40}
         height={220}
-        chartConfig={{
-          backgroundColor: "#f5f5f5",
-          backgroundGradientFrom: "#ffffff",
-          backgroundGradientTo: "#f5f5f5",
-          color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-        }}
+        chartConfig={chartConfig}
         style={styles.chartStyle}
       />
 
@@ -87,10 +77,7 @@ const AnalyticsScreen = ({ token }) => {
         }))}
         width={screenWidth - 40}
         height={220}
-        chartConfig={{
-          backgroundColor: "#ffffff",
-          color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-        }}
+        chartConfig={chartConfig}
         accessor="population"
         style={styles.chartStyle}
       />
@@ -105,12 +92,7 @@ const AnalyticsScreen = ({ token }) => {
           width={screenWidth - 40}
           height={220}
           yAxisSuffix="kg"
-          chartConfig={{
-            backgroundColor: "#e26a00",
-            backgroundGradientFrom: "#fb8c00",
-            backgroundGradientTo: "#ffa726",
-            color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-          }}
+          chartConfig={lineChartConfig}
           bezier
           style={styles.chartStyle}
         />
@@ -125,19 +107,34 @@ const AnalyticsScreen = ({ token }) => {
           }}
           width={screenWidth - 40}
           height={220}
-          yAxisLabel=""
           yAxisSuffix="x"
-          chartConfig={{
-            backgroundColor: "#1cc910",
-            backgroundGradientFrom: "#43e97b",
-            backgroundGradientTo: "#38f9d7",
-            color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-          }}
+          chartConfig={barChartConfig}
           style={styles.chartStyle}
         />
       ) : <Text style={styles.noDataText}>No workout frequency data available.</Text>}
     </ScrollView>
   );
+};
+
+const chartConfig = {
+  backgroundColor: "#f5f5f5",
+  backgroundGradientFrom: "#ffffff",
+  backgroundGradientTo: "#f5f5f5",
+  color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+};
+
+const lineChartConfig = {
+  backgroundColor: "#e26a00",
+  backgroundGradientFrom: "#fb8c00",
+  backgroundGradientTo: "#ffa726",
+  color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+};
+
+const barChartConfig = {
+  backgroundColor: "#1cc910",
+  backgroundGradientFrom: "#43e97b",
+  backgroundGradientTo: "#38f9d7",
+  color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
 };
 
 const styles = {
