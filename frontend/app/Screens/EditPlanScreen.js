@@ -18,7 +18,7 @@ const EditPlanScreen = () => {
 
     try {
       if (isEditing) {
-        await updatePlan(initialPlan.id, updatedPlan); // assuming `id` exists
+        await updatePlan(initialPlan.id, updatedPlan); 
         console.log('Updated plan:', updatedPlan);
       } else {
         await createPlan(updatedPlan);
