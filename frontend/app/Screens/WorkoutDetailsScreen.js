@@ -6,34 +6,22 @@ import { exercises } from './Exercises';
 function WorkoutDetailsScreen({ route }) {
     const {
         workoutId,
-        favourites: initialFavourites,
-        toggleFavourite,
-        onSelectExercise,
+        fromAddWorkout, 
+        onSelectExercise, 
     } = route.params;
 
-    const [favourites, setFavourites] = useState(initialFavourites || []);
     const [workout, setWorkout] = useState(null);
     const navigation = useNavigation();
 
     useEffect(() => {
-        const selectedWorkout = exercises.find(exercise => exercise.id === workoutId);
+        const selectedWorkout = exercises.find((exercise) => exercise.id === workoutId);
         setWorkout(selectedWorkout);
     }, [workoutId]);
 
-    const handleToggleFavourite = (workoutId) => {
-        const updatedFavourites = favourites.includes(workoutId)
-            ? favourites.filter(id => id !== workoutId)
-            : [...favourites, workoutId];
-        setFavourites(updatedFavourites);
-        toggleFavourite?.(workoutId); // optional chaining for robustness
-    };
-
     const handleAddToSchedule = () => {
         if (onSelectExercise) {
-            onSelectExercise(workout.id);
-            navigation.goBack();
-        } else {
-            navigation.navigate('PlanScreen', { workout });
+            onSelectExercise(workout); 
+            navigation.goBack(); 
         }
     };
 
@@ -53,9 +41,11 @@ function WorkoutDetailsScreen({ route }) {
                 <Text style={styles.backButtonText}>Back</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={handleAddToSchedule} style={styles.addButton}>
-                <Text style={styles.addButtonText}>+</Text>
-            </TouchableOpacity>
+            {fromAddWorkout && (
+                <TouchableOpacity onPress={handleAddToSchedule} style={styles.addButton}>
+                    <Text style={styles.addButtonText}>+</Text>
+                </TouchableOpacity>
+            )}
 
             <View style={styles.detailsContainer}>
                 <Text style={styles.detailTitle}>{workout.name}</Text>
@@ -71,12 +61,6 @@ function WorkoutDetailsScreen({ route }) {
                     <Text style={styles.detailText}><Text style={styles.bold}>Recommended Time:</Text> {workout.recommendedTime}</Text>
                 )}
                 <Text style={styles.detailText}><Text style={styles.bold}>Instructions:</Text> {workout.instructions}</Text>
-
-                <TouchableOpacity onPress={() => handleToggleFavourite(workout.id)}>
-                    <Text style={styles.favouriteText}>
-                        {favourites.includes(workout.id) ? '★ Remove from Favourites' : '☆ Add to Favourites'}
-                    </Text>
-                </TouchableOpacity>
             </View>
         </ScrollView>
     );
