@@ -1,13 +1,31 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Button, FlatList, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
-import { getPlans, generatePlan, setPlanActive } from '../api/plans';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
+import { getPlans, generatePlan, setPlanActive } from '../../src/api/plans';
+import { exercises } from './Exercises'; 
 
-const PlansScreen = () => {
-  const [plans, setPlans] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState('your_token_here'); 
+if (Platform.OS === 'android') {
+  UIManager.setLayoutAnimationEnabledExperimental?.(true);
+}
+
+const PlanScreen = () => {
   const navigation = useNavigation();
+  const [plans, setPlans] = useState([]);
+  const [expandedDays, setExpandedDays] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState('your_token_here');
 
   useEffect(() => {
     fetchUserPlans();
@@ -24,6 +42,54 @@ const PlansScreen = () => {
     }
   };
 
+  const toggleDay = (key) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedDays((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const renderExerciseItem = (exerciseId) => {
+    const exercise = exercises.find((e) => e.id === exerciseId.toString());
+    if (!exercise) {
+      return <Text key={exerciseId} style={styles.unknownExercise}>Unknown Exercise (ID: {exerciseId})</Text>;
+    }
+    return (
+      <TouchableOpacity
+        key={exercise.id}
+        onPress={() => navigation.navigate('SessionScreen', { id: exercise.id })}
+        style={styles.exerciseItem}
+      >
+        <Text style={styles.exerciseText}>{exercise.name}</Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderDayItem = (plan, day) => {
+    const key = `${plan.id}-${day.day}`;
+    return (
+      <View key={key} style={styles.dayContainer}>
+        <TouchableOpacity
+          onPress={() => toggleDay(key)}
+          style={styles.dayHeader}
+        >
+          <Text style={styles.dayTitle}>{day.day}</Text>
+          <Icon
+            name={expandedDays[key] ? 'chevron-up' : 'chevron-down'}
+            size={24}
+            color="white"
+          />
+        </TouchableOpacity>
+        {expandedDays[key] && (
+          <View style={styles.exercisesList}>
+            {day.exercises.map(renderExerciseItem)}
+          </View>
+        )}
+      </View>
+    );
+  };
+
   const handleGeneratePlan = async () => {
     try {
       const generated = await generatePlan(token, {
@@ -36,7 +102,7 @@ const PlansScreen = () => {
         },
       });
       Alert.alert('Success', `Plan "${generated.name}" created!`);
-      fetchUserPlans(); 
+      fetchUserPlans();
     } catch (err) {
       Alert.alert('Generation Error', err.message);
     }
@@ -46,83 +112,94 @@ const PlansScreen = () => {
     try {
       await setPlanActive(token, planId);
       Alert.alert('Active', 'Plan set as active!');
-      fetchUserPlans(); 
+      fetchUserPlans();
     } catch (err) {
       Alert.alert('Error', err.message);
     }
   };
 
-  const goToPlanDetails = (planId) => {
-    navigation.navigate('PlanDetails', { planId });
+  const renderCurrentPlan = () => {
+    if (loading) {
+      return <ActivityIndicator size="large" color="#fff" style={{ marginTop: 40 }} />;
+    }
+
+    if (plans.length === 0) {
+      return (
+        <View style={styles.noPlansContainer}>
+          <Text style={styles.noPlansText}>You don't have any workout plans yet.</Text>
+          <Text style={styles.chooseOptionText}>Choose an option below</Text>
+        </View>
+      );
+    }
+
+    const currentPlan = plans[0];
+
+    return (
+      <View style={styles.planContainer}>
+        <View style={styles.planHeader}>
+          <Text style={styles.planTitle}>Current Plan</Text>
+          <View style={styles.planActions}>
+            <TouchableOpacity onPress={() => navigation.navigate('EditPlanScreen', { plan: currentPlan })}>
+              <Icon name="pencil" size={22} color="white" style={styles.iconMargin} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleSetActive(currentPlan.plan_id)}>
+              <Icon name="check-circle" size={22} color="lime" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {currentPlan.days.map((day) => renderDayItem(currentPlan, day))}
+      </View>
+    );
   };
 
-  if (loading) {
-    return <ActivityIndicator size="large" />;
-  }
-
   return (
-    <View style={{ padding: 20 }}>
-      <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20 }}>Your Plans</Text>
+    <ScrollView style={styles.container}>
+      {renderCurrentPlan()}
 
-      <Button title="Generate New Plan" onPress={handleGeneratePlan} />
+      <TouchableOpacity style={styles.generateButton} onPress={handleGeneratePlan}>
+        <Text style={styles.buttonText}>Create New Plan</Text>
+      </TouchableOpacity>
 
-      <FlatList
-        data={plans}
-        keyExtractor={(item) => item.plan_id.toString()}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={{
-              padding: 15,
-              marginVertical: 10,
-              borderWidth: 1,
-              borderRadius: 8,
-              backgroundColor: item.is_active ? '#d4edda' : '#f8f9fa',
-            }}
-            onPress={() => goToPlanDetails(item.plan_id)}
-            onLongPress={() => handleSetActive(item.plan_id)}
-          >
-            <Text style={{ fontWeight: 'bold' }}>{item.name}</Text>
-            <Text>{item.description}</Text>
-            <Text>Days/Week: {item.days_per_week}</Text>
-            {item.is_active && <Text style={{ color: 'green' }}>Active</Text>}
-          </TouchableOpacity>
-        )}
-      />
-    </View>
+      <TouchableOpacity style={styles.otherPlansButton} onPress={() => navigation.navigate('OtherPlansScreen')}>
+        <Text style={styles.buttonText}>Other Plans</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'black',
+    backgroundColor: '#111',
     padding: 16,
   },
   planContainer: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   planHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   planTitle: {
-    fontSize: 24,
-    color: 'white',
+    fontSize: 20,
+    color: '#fff',
     fontWeight: 'bold',
   },
-  iconContainer: {
+  planActions: {
     flexDirection: 'row',
+    gap: 10,
   },
-  iconButton: {
-    marginLeft: 12,
+  iconMargin: {
+    marginRight: 12,
   },
   dayContainer: {
-    marginBottom: 16,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 8,
+    backgroundColor: '#222',
     padding: 12,
+    marginBottom: 12,
+    borderRadius: 10,
   },
   dayHeader: {
     flexDirection: 'row',
@@ -130,61 +207,61 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dayTitle: {
-    fontSize: 18,
-    color: 'white',
-    fontWeight: 'bold',
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
-  exerciseList: {
+  exercisesList: {
     marginTop: 10,
   },
   exerciseItem: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    padding: 10,
     backgroundColor: '#333',
-    borderRadius: 6,
-    marginBottom: 6,
+    borderRadius: 8,
+    marginBottom: 8,
   },
   exerciseText: {
-    color: 'white',
-    fontSize: 16,
+    color: '#fff',
+    fontSize: 14,
+  },
+  unknownExercise: {
+    color: 'gray',
+    fontStyle: 'italic',
+    marginBottom: 4,
+  },
+  generateButton: {
+    backgroundColor: '#3498db',
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 12,
   },
   otherPlansButton: {
-    backgroundColor: 'rgb(2, 77, 87)',
-    paddingVertical: 12,
+    backgroundColor: '#27ae60',
+    padding: 14,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 12,
   },
-  otherPlansText: {
+  buttonText: {
     color: 'white',
+    fontWeight: 'bold',
     fontSize: 16,
-    fontWeight: '600',
-  },
-  createNewPlanButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  createNewPlanText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
   },
   noPlansContainer: {
     alignItems: 'center',
-    padding: 20,
+    marginVertical: 40,
   },
   noPlansText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 18,
+    textAlign: 'center',
     marginBottom: 8,
   },
   chooseOptionText: {
-    color: 'white',
+    color: '#ccc',
     fontSize: 14,
     fontStyle: 'italic',
+    textAlign: 'center',
   },
 });
 
