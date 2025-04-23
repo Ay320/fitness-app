@@ -1,16 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  LayoutAnimation,
-  Platform,
-  UIManager,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
+import {View,Text,TouchableOpacity,StyleSheet,ScrollView,LayoutAnimation,Platform,UIManager,ActivityIndicator,Alert,} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { getPlans, generatePlan, setPlanActive } from '../../src/api/plans';
@@ -157,7 +146,7 @@ const PlanScreen = () => {
     <ScrollView style={styles.container}>
       {renderCurrentPlan()}
 
-      <TouchableOpacity style={styles.generateButton} onPress={handleGeneratePlan}>
+      <TouchableOpacity style={styles.generateButton} onPress={() => navigation.navigate("EditPlanScreen")}>
         <Text style={styles.buttonText}>Create New Plan</Text>
       </TouchableOpacity>
 
