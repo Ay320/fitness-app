@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import {View,Text,TextInput,TouchableOpacity,ScrollView,StyleSheet,Alert,} from 'react-native';
+import {View,Text,TextInput,TouchableOpacity,ScrollView,StyleSheet,Alert,Image,} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { createPlan, updatePlan } from '../../src/api/plans';
@@ -14,11 +14,18 @@ const EditPlanScreen = () => {
   const [days, setDays] = useState(initialPlan.days);
 
   const handleSave = async () => {
+    if (!planName.trim()) {
+      Alert.alert('Validation Error', 'Plan name cannot be empty.');
+      return;
+    }
+
     const updatedPlan = { name: planName, days };
+
+    console.log('Plan to be created:', updatedPlan);
 
     try {
       if (isEditing) {
-        await updatePlan(initialPlan.id, updatedPlan); 
+        await updatePlan(initialPlan.id, updatedPlan);
         console.log('Updated plan:', updatedPlan);
       } else {
         await createPlan(updatedPlan);
@@ -26,7 +33,7 @@ const EditPlanScreen = () => {
       }
       navigation.goBack();
     } catch (error) {
-      console.error('Failed to save plan:', error);
+      console.error('Failed to save plan:', error.response || error.message || error);
       Alert.alert('Error', 'Something went wrong while saving the plan.');
     }
   };
@@ -54,10 +61,9 @@ const EditPlanScreen = () => {
 
   const addExerciseToDay = (dayIndex) => {
     navigation.navigate('FindWorkoutScreen', {
-      workoutId: '1',
-      onSelectExercise: (selectedExerciseId) => {
+      onSelectExercise: (selectedExercise) => {
         const updatedDays = [...days];
-        updatedDays[dayIndex].exercises.push(selectedExerciseId);
+        updatedDays[dayIndex].exercises.push(selectedExercise);
         setDays(updatedDays);
       },
     });
@@ -93,16 +99,26 @@ const EditPlanScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {day.exercises.map((exerciseId, exIndex) => (
-            <View key={exIndex} style={styles.exerciseItem}>
-              <Text style={styles.exerciseText}>Exercise ID: {exerciseId}</Text>
+          {day.exercises.map((exercise, exIndex) => (
+            <TouchableOpacity
+              key={exIndex}
+              style={styles.exerciseItem}
+              onPress={() =>
+                navigation.navigate('WorkoutDetailsScreen', {
+                  workoutId: exercise.id, // Pass the workout ID to the details screen
+                })
+              }
+            >
+              {/* Display the exercise image */}
+              <Image source={{ uri: exercise.image }} style={styles.exerciseImage} />
+              <Text style={styles.exerciseText}>{exercise.name}</Text>
               <TouchableOpacity
                 onPress={() => deleteExercise(dayIndex, exIndex)}
                 style={styles.deleteExerciseButton}
               >
                 <Icon name="close" size={18} color="white" />
               </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
           ))}
 
           <TouchableOpacity
@@ -172,10 +188,18 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 6,
     marginBottom: 6,
+    alignItems: 'center',
+  },
+  exerciseImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 4,
+    marginRight: 10,
   },
   exerciseText: {
     color: 'white',
     fontSize: 16,
+    flex: 1,
   },
   deleteExerciseButton: {
     paddingHorizontal: 8,
