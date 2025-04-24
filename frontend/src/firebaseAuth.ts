@@ -1,5 +1,14 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth';
+//import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import {
+  initializeAuth,
+  getReactNativePersistence,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  User
+} from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Firebase configuration using environment variables
 const firebaseConfig = {
@@ -15,7 +24,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase Authentication
-const auth = getAuth(app);
+//const auth = getAuth(app);
+// Initialize Auth with AsyncStorage persistence
+export const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage)
+});
+
 
 // Interface for authentication state
 interface AuthState {

@@ -24,20 +24,34 @@ const apiClient = axios.create({
 // Function to sync user with backend using the Firebase token
 export const syncUser = async (token: string): Promise<SyncUserResponse> => {
   try {
-    const response: AxiosResponse<SyncUserResponse> = await apiClient.post(
+    console.log('Starting syncUser request...');
+    console.log('API_BASE_URL:', API_BASE_URL);
+    console.log('Full URL:', `${API_BASE_URL}/auth/sync-user`);
+    console.log('Token:', token);
+    console.log('Axios config:', apiClient.defaults);
+
+    const response = await apiClient.post<SyncUserResponse>(
       '/auth/sync-user',
-      {},  // No body needed for this endpoint
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
     );
+
+    console.log('Response status:', response.status);
+    console.log('Response data:', response.data);
+
     return response.data;
-  } catch (error: any) {
-    if (error.response?.status === 401) {
+  } catch (err: any) {
+    console.error('❌ syncUser error:', {
+      status: err.response?.status,
+      data: err.response?.data,
+      message: err.message,
+      code: err.code,           // e.g., ECONNABORTED for timeouts
+      config: err.config,       // Request config
+      request: err.request,     // Request details
+    });
+    if (err.response?.status === 401) {
       throw new Error('Unauthorized: Invalid or expired token. Please log in again.');
     }
-    throw new Error('Failed to sync user with backend.');
+    throw new Error(`Sync failed: ${err.response?.data?.detail || err.message}`);
   }
 };

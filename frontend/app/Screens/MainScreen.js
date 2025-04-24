@@ -1,3 +1,4 @@
+/*
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -341,4 +342,365 @@ const styles = StyleSheet.create({
   },  
 });
 
-export default MainScreen;
+export default MainScreen; 
+*/
+
+
+
+
+
+
+
+
+
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+//import { AuthContext } from '../context/AuthContext';
+import { getUserStreak } from '../../src/api/user';
+import { getWorkoutLogs } from '../../src/api/workouts';
+import { getPlans, getPlanDays, getPlanExercises } from '../../src/api/plans';
+
+const HomeScreen = () => {
+  const navigation = useNavigation();
+  const mockToken = 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjkwOTg1NzhjNDg4MWRjMDVlYmYxOWExNWJhMjJkOGZkMWFiMzRjOGEiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vZml0dHJhY2stYWY2NGQiLCJhdWQiOiJmaXR0cmFjay1hZjY0ZCIsImF1dGhfdGltZSI6MTc0NTQzOTExNywidXNlcl9pZCI6IndsUjJvVlVPUWVYYWtkdUdrMGw2anNFd1NoYjIiLCJzdWIiOiJ3bFIyb1ZVT1FlWGFrZHVHazBsNmpzRXdTaGIyIiwiaWF0IjoxNzQ1NDM5MTE3LCJleHAiOjE3NDU0NDI3MTcsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiZmlyZWJhc2UiOnsiaWRlbnRpdGllcyI6eyJlbWFpbCI6WyJ0ZXN0QGV4YW1wbGUuY29tIl19LCJzaWduX2luX3Byb3ZpZGVyIjoicGFzc3dvcmQifX0.IZdLVzRM3ahmdXvw3wk_1axUxLZw2aKnqebWBwET-wxqMfyCzviwFQcJIiBv6eWtKtozNlyuL3gwP5iO9-rsizs7JcOKQQT38JqjomSd-Tpp3fxUyXfQoh4OiILf1GnJJDfFNHDcFNfsBLh83DExwL-qZouN2A1Uy8cYlv_mVawb1Fc0XgxkrCKWaBmlZ2VOcLrOCGgXtwbjoVy8MKwqXNbXNsaBHvh7M3c0RjeTtBMYKWxK6sn6BRuP6pG-jhkrVApHvb2CzAVCe4ED9claw0YxGqOZIjk3qQI7F5KbjG69AXmA7TjSlLgtZxDxUAV5FgEOOvGIEd3DIAPlnb__og'; // Mock Firebase token
+  const [profile, setProfile] = useState({ name: 'John Doe', avatar: 'https://via.placeholder.com/150' }); // Mock user data
+  const [streak, setStreak] = useState(0);
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [currentPlan, setCurrentPlan] = useState(null);
+  const [todayProgress, setTodayProgress] = useState({ duration: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Fetch streak
+        const streakData = await getUserStreak(mockToken);
+        setStreak(streakData.current_streak);
+
+        // Fetch recent workout logs
+        const logs = await getWorkoutLogs(mockToken);
+        setRecentActivity(logs.slice(0, 5)); // Last 5 workouts
+
+        // Fetch current active plan
+        const plans = await getPlans(mockToken);
+        const activePlan = plans.find(plan => plan.is_active);
+        if (activePlan) {
+          const days = await getPlanDays(mockToken, activePlan.plan_id);
+          const exercises = await Promise.all(days.map(day => getPlanExercises(mockToken, activePlan.plan_id, day.plan_day_id)));
+          setCurrentPlan({ ...activePlan, days, exercises: exercises.flat() });
+        }
+
+        // Calculate today's workout duration
+        const today = new Date().toISOString().split('T')[0];
+        const todayLogs = logs.filter(log => log.date_logged.startsWith(today));
+        const totalDuration = todayLogs.reduce((sum, log) => sum + (log.duration_minutes || 0), 0);
+        setTodayProgress({ duration: totalDuration });
+      } catch (err) {
+        setError('Failed to load data. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>{error}</Text>
+      </View>
+    );
+  }
+
+  const quickActions = [
+    { id: 'start', icon: 'search', screen: 'FindWorkoutScreen' },
+    { id: 'plan', icon: 'calendar-month', screen: 'PlanScreen' },
+    { id: 'stats', icon: 'bar-chart', screen: 'AnalyticsScreen' },
+  ];
+
+  return (
+    <View style={styles.background}>
+      {/* Top Bar */}
+      <View style={styles.topBar}>
+        <View>
+          <Text style={styles.welcomeText}>Welcome Back</Text>
+          <Text style={styles.usernameText}>{profile.name}</Text>
+        </View>
+        <View style={styles.profileContainer}>
+          <View style={styles.streakContainer}>
+            <Icon name="whatshot" size={32} color={streak > 0 ? 'orange' : 'gray'} />
+            <Text style={styles.streakText}>{streak}</Text>
+          </View>
+          <TouchableOpacity onPress={() => navigation.navigate('ProfileScreen')}>
+            <Image source={{ uri: profile.avatar }} style={styles.profileImage} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Content Container */}
+      <View style={styles.contentContainer}>
+        {/* Today's Progress */}
+        <Text style={styles.sectionTitle}>Today's Progress</Text>
+        <View style={styles.progressContainer}>
+          <Text style={styles.progressText}>Workout Duration: {todayProgress.duration} min</Text>
+        </View>
+
+        {/* Recent Activity */}
+        <Text style={styles.sectionTitle}>Recent Activity</Text>
+        {recentActivity.length > 0 ? (
+          <FlatList
+            data={recentActivity}
+            keyExtractor={(item) => item.log_id.toString()}
+            renderItem={({ item }) => (
+              <View style={styles.activityCard}>
+                <Image source={{ uri: item.image_url || 'https://via.placeholder.com/100' }} style={styles.activityImage} />
+                <View style={styles.activityDetails}>
+                  <Text style={styles.activityTitle}>{item.exercise_name}</Text>
+                  <Text style={styles.activityInfo}>
+                    {item.sets} sets | {item.reps} reps | {item.duration_minutes ? `${item.duration_minutes} min` : 'N/A'}
+                  </Text>
+                </View>
+              </View>
+            )}
+          />
+        ) : (
+          <Text style={styles.noActivityText}>No recent activity. Start a workout!</Text>
+        )}
+
+        {/* Current Plan */}
+        <Text style={styles.sectionTitle}>Current Plan</Text>
+        {currentPlan ? (
+          <FlatList
+            horizontal
+            data={currentPlan.exercises}
+            keyExtractor={(item) => item.plan_exercise_id.toString()}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                onPress={() => navigation.navigate('SessionScreen', { id: item.exercise_id })}
+                style={styles.workoutCard}
+              >
+                <Image source={{ uri: item.image_url || 'https://via.placeholder.com/100' }} style={styles.workoutImage} />
+                <Text style={styles.workoutName}>{item.exercise_name}</Text>
+                <Text style={styles.workoutDescription}>{item.category}</Text>
+              </TouchableOpacity>
+            )}
+            ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
+          />
+        ) : (
+          <View style={styles.noWorkoutsContainer}>
+            <Text style={styles.noWorkoutsText}>No active plan found.</Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('PlanScreen')}
+              style={styles.findWorkoutsButton}
+            >
+              <Text style={styles.findWorkoutsText}>Create a plan</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      {/* Quick Actions */}
+      <View style={styles.quickActionsContainer}>
+        {quickActions.map(action => (
+          <TouchableOpacity
+            key={action.id}
+            onPress={() => navigation.navigate(action.screen)}
+            style={styles.quickActionButton}
+          >
+            <Icon name={action.icon} size={28} color="white" />
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+    backgroundColor: 'rgb(0, 0, 0)',
+  },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 24,
+    paddingHorizontal: 20,
+  },
+  welcomeText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  usernameText: {
+    color: 'white',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  profileContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  streakContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  streakText: {
+    color: 'white',
+    fontSize: 18,
+    marginLeft: 8,
+  },
+  profileImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  contentContainer: {
+    flex: 1,
+    width: '100%',
+    paddingHorizontal: 20,
+  },
+  sectionTitle: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  progressContainer: {
+    marginBottom: 24,
+  },
+  progressText: {
+    color: 'white',
+    fontSize: 16,
+  },
+  activityCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  activityImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  activityDetails: {
+    flex: 1,
+  },
+  activityTitle: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  activityInfo: {
+    color: '#ccc',
+    fontSize: 14,
+  },
+  noActivityText: {
+    color: '#aaa',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  workoutCard: {
+    backgroundColor: '#fff',
+    padding: 16,
+    marginRight: 12,
+    borderRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    width: 160,
+    alignItems: 'center',
+  },
+  workoutImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+  },
+  workoutName: {
+    fontWeight: 'bold',
+    marginTop: 8,
+  },
+  workoutDescription: {
+    fontSize: 12,
+    color: '#757575',
+    textAlign: 'center',
+  },
+  noWorkoutsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  noWorkoutsText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  findWorkoutsButton: {
+    backgroundColor: 'rgb(2, 77, 87)',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+  },
+  findWorkoutsText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  quickActionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: '#222',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    width: '100%',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+  },
+  quickActionButton: {
+    width: 60,
+    height: 60,
+    backgroundColor: 'rgb(2, 77, 87)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 15,
+  },
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgb(0, 0, 0)',
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+});
+
+export default HomeScreen;

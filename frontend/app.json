@@ -13,12 +13,35 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true,
+          "NSExceptionDomains": {
+            "3.8.177.201": {
+              "NSIncludesSubdomains": true,
+              "NSExceptionAllowsInsecureHTTPLoads": true
+            }
+          }
+        }
+      }
     },
     "android": {
+      "package": "com.test.fittrack",
       "adaptiveIcon": {
         "foregroundImage": ".app/assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
+      },
+      "networkSecurityConfig": {
+        "securityConfig": {
+          "domainConfig": [
+            {
+              "domains": ["3.8.177.201"],
+              "includeSubdomains": true,
+              "cleartextTrafficPermitted": true
+            }
+          ]
+        }
       }
     },
     "web": {

@@ -1,8 +1,18 @@
 from fastapi import FastAPI
 from app.routes import auth_routes, user_routes, workout_routes, stats_routes, plans_routes
 from app import firebase_config
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins; adjust for production
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers (e.g., Authorization)
+)
 
 app.include_router(auth_routes.router)
 app.include_router(user_routes.router)
