@@ -22,6 +22,7 @@ ALTER TABLE Users
 ADD COLUMN current_streak INT DEFAULT 0,
 ADD COLUMN last_streak_update DATE NULL;
 
+ALTER TABLE Users ADD COLUMN bio TEXT;
 
 CREATE TABLE Workout_Exercises (
     exercise_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -138,6 +139,21 @@ SELECT * FROM Workout_Exercises;
 SELECT * FROM Users;
 SELECT * FROM Workout_Logs;
 SELECT * FROM Weight_History;
+-- 1) Plain INSERT (first‐time user)
+INSERT INTO Users
+  (username, firebase_uid, email, date_of_birth, gender, weight_kg, height_cm, fitness_goal, experience_level)
+VALUES
+  (
+    'John',                      -- username
+    'F4vBMjhLFGgebmh87jM1Jrm6wCB3',                -- firebase_uid
+    'test2@gmail.com',         -- email
+    '1990-05-15',                   -- date_of_birth (YYYY-MM-DD)
+    'Male',                         -- gender
+    78.5,                           -- weight_kg
+    180.0,                          -- height_cm
+    'General Fitness',              -- fitness_goal
+    'Intermediate'                  -- experience_level
+  );
 
 
 

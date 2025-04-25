@@ -2,9 +2,6 @@
  * Handles API calls to backend user-related endpoints using Axios.
  */
 
-/**
- * Handles API calls to backend user-related endpoints using Axios.
- */
 
 import axios, { AxiosResponse } from 'axios';
 import API_BASE_URL from '../config';
