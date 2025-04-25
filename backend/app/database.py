@@ -103,13 +103,13 @@ class Database:
             raise
 
     def update_user_profile(self, user_id: int, username: str, date_of_birth: str, gender: str,
-                           weight_kg: float, height_cm: float, fitness_goal: str, experience_level: str):
+                           weight_kg: float, height_cm: float, fitness_goal: str, experience_level: str, bio: Optional[str] = None):
         """Update user profile information."""
         try:
             self.cursor.execute(
                 "UPDATE Users SET username=%s, date_of_birth=%s, gender=%s, weight_kg=%s, height_cm=%s, "
-                "fitness_goal=%s, experience_level=%s WHERE user_id=%s",
-                (username, date_of_birth, gender, weight_kg, height_cm, fitness_goal, experience_level, user_id)
+                "fitness_goal=%s, experience_level=%s, bio=%s WHERE user_id=%s",
+                (username, date_of_birth, gender, weight_kg, height_cm, fitness_goal, experience_level, bio, user_id)
             )
             self.conn.commit()
         except Exception as e:

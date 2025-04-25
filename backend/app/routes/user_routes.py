@@ -3,7 +3,7 @@ from app.dependencies import get_current_user
 from app.database import get_database, Database
 from pydantic import BaseModel
 from app.services.streak_service import update_streak
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 router = APIRouter(prefix="/user", tags=["user"])
 
@@ -15,6 +15,24 @@ class UserProfileUpdate(BaseModel):
     height_cm: float
     fitness_goal: str
     experience_level: str
+    bio: Optional[str] = None
+
+
+
+@router.get("/profile")
+async def get_user_profile(decoded_token: dict = Depends(get_current_user)):
+    """Fetch the authenticated user's profile data."""
+    firebase_uid = decoded_token.get("uid")
+    db = get_database()
+    try:
+        user = db.get_user_by_firebase_uid(firebase_uid)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        # Exclude sensitive fields like firebase_uid from the response
+        return {k: v for k, v in user.items() if k != "firebase_uid"}
+    finally:
+        db.close()
+
 
 @router.post("/profile")
 async def update_user_profile(profile: UserProfileUpdate, decoded_token: dict = Depends(get_current_user)):
@@ -33,13 +51,15 @@ async def update_user_profile(profile: UserProfileUpdate, decoded_token: dict = 
             weight_kg=profile.weight_kg,
             height_cm=profile.height_cm,
             fitness_goal=profile.fitness_goal,
-            experience_level=profile.experience_level
+            experience_level=profile.experience_level,
+            bio=profile.bio 
         )
         return {"message": "Profile updated", "user_id": user_id}
     except Exception as e:
         raise Exception(f"Failed to update profile: {str(e)}")
     finally:
         db.close()
+
 
 # Streaks feature:
 @router.get("/streak", response_model=Dict[str, Any])
