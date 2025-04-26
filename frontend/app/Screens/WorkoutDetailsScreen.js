@@ -25,6 +25,10 @@ function WorkoutDetailsScreen({ route }) {
         }
     };
 
+    const handleStartWorkout = () => {
+        navigation.navigate('SessionScreen', { id: workoutId });
+    };
+
     if (!workout) {
         return (
             <View style={styles.container}>
@@ -62,6 +66,10 @@ function WorkoutDetailsScreen({ route }) {
                 )}
                 <Text style={styles.detailText}><Text style={styles.bold}>Instructions:</Text> {workout.instructions}</Text>
             </View>
+
+            <TouchableOpacity style={styles.startButton} onPress={handleStartWorkout}>
+                <Text style={styles.startButtonText}>Start Workout</Text>
+            </TouchableOpacity>
         </ScrollView>
     );
 }
@@ -108,12 +116,6 @@ const styles = StyleSheet.create({
         textAlign: 'left',
         marginBottom: 12,
     },
-    favouriteText: {
-        color: 'gold',
-        fontSize: 18,
-        textAlign: 'center',
-        marginTop: 20,
-    },
     addButton: {
         position: 'absolute',
         top: 250,
@@ -130,6 +132,18 @@ const styles = StyleSheet.create({
     addButtonText: {
         color: 'white',
         fontSize: 28,
+        fontWeight: 'bold',
+    },
+    startButton: {
+        backgroundColor: 'rgb(2, 77, 87)',
+        padding: 15,
+        borderRadius: 10,
+        alignItems: 'center',
+        marginTop: 20,
+    },
+    startButtonText: {
+        color: 'white',
+        fontSize: 18,
         fontWeight: 'bold',
     },
     bold: {

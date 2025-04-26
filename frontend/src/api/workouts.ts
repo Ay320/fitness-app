@@ -120,13 +120,14 @@ export const logWorkout = async (token: string, exerciseId: number, workoutData:
     );
     return response.data;
   } catch (error: any) {
+    console.error('Error logging workout:', error.response?.data || error.message);
     if (error.response?.status === 401) {
       throw new Error('Unauthorized: Invalid or expired token. Please log in again.');
     }
     if (error.response?.status === 404) {
       throw new Error('Exercise not found.');
     }
-    throw new Error('Failed to log workout.');
+    throw new Error(error.response?.data?.message || 'Failed to log workout!!');
   }
 };
 

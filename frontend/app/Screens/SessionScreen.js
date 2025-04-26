@@ -1,31 +1,41 @@
-import React, { useState, useEffect } from 'react';
-import { TouchableOpacity, TextInput, StyleSheet, View, Text, Image, ScrollView } from 'react-native';
+import React, { useState, useEffect, useContext } from 'react';
+import { TouchableOpacity, TextInput, StyleSheet, View, Text, Image, ScrollView, Alert } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { exercises } from './Exercises';
+import { logWorkout } from '../../src/api/workouts';
+import { AuthContext } from '../../src/AuthContext';
 
-const InputControl = ({ label, value, setValue }) => {
-    const increaseValue = () => setValue((prev) => prev + 1);
-    const decreaseValue = () => setValue((prev) => (prev > 1 ? prev - 1 : 1));
+const InputControl = ({ label, value, setValue, isText = false }) => {
+    const increaseValue = () => !isText && setValue((prev) => prev + 1);
+    const decreaseValue = () => !isText && setValue((prev) => (prev > 1 ? prev - 1 : 1));
 
     return (
         <View style={styles.inputRow}>
             <Text style={styles.label}>{label}</Text>
-            <TouchableOpacity onPress={decreaseValue}>
-                <Icon name="remove-circle-outline" size={24} color="white" />
-            </TouchableOpacity>
+            {!isText && (
+                <TouchableOpacity onPress={decreaseValue}>
+                    <Icon name="remove-circle-outline" size={24} color="white" />
+                </TouchableOpacity>
+            )}
             <TextInput
                 style={styles.input}
                 value={String(value)}
-                keyboardType="numeric"
+                keyboardType={isText ? 'default' : 'numeric'}
                 onChangeText={(text) => {
-                    const num = Number(text);
-                    setValue(num > 0 ? num : 1);
+                    if (isText) {
+                        setValue(text);
+                    } else {
+                        const num = Number(text);
+                        setValue(num > 0 ? num : 1);
+                    }
                 }}
             />
-            <TouchableOpacity onPress={increaseValue}>
-                <Icon name="add-circle-outline" size={24} color="white" />
-            </TouchableOpacity>
+            {!isText && (
+                <TouchableOpacity onPress={increaseValue}>
+                    <Icon name="add-circle-outline" size={24} color="white" />
+                </TouchableOpacity>
+            )}
         </View>
     );
 };
@@ -34,33 +44,54 @@ function SessionScreen() {
     const navigation = useNavigation();
     const route = useRoute();
     const { id } = route.params;
+    const { token } = useContext(AuthContext);
     const [sets, setSets] = useState(3);
     const [reps, setReps] = useState(10);
     const [weight, setWeight] = useState(20);
+    const [duration, setDuration] = useState(0);
+    const [notes, setNotes] = useState('');
     const [exerciseDetails, setExerciseDetails] = useState(null);
     const [workoutStarted, setWorkoutStarted] = useState(false);
-    const [completedSets, setCompletedSets] = useState(new Array(sets).fill(false)); 
+    const [completedSets, setCompletedSets] = useState(new Array(sets).fill(false));
+
     useEffect(() => {
         const exercise = exercises.find(exercise => exercise.id === id);
         setExerciseDetails(exercise);
-    }, [id]);
+        setCompletedSets(new Array(sets).fill(false));
+    }, [id, sets]);
 
     const handleStart = () => {
         setWorkoutStarted(true);
     };
 
-    const handleCompleteWorkout = () => {
-        console.log('Workout completed!');
+    const handleCompleteWorkout = async () => {
+        const isCardio = exerciseDetails?.category === 'Cardio';
+        const workoutData = {
+            sets: isCardio ? null : sets,
+            reps: isCardio ? null : reps,
+            weight: isCardio ? null : weight,
+            duration_minutes: duration > 0 ? duration : null,
+            notes: notes || (isCardio ? 'Cardio workout' : 'Strength workout'),
+        };
+
+        try {
+            await logWorkout(token, exerciseDetails.id, workoutData);
+            Alert.alert('Success', 'Workout logged successfully!');
+            navigation.goBack();
+        } catch (error) {
+            Alert.alert('Error', error.message || 'Failed to log workout.');
+        }
     };
 
     const toggleSetCompletion = (index) => {
         const newCompletedSets = [...completedSets];
-        newCompletedSets[index] = !newCompletedSets[index]; 
+        newCompletedSets[index] = !newCompletedSets[index];
         setCompletedSets(newCompletedSets);
     };
 
-    const isValid = sets > 0 && reps > 0 && weight > 0;
-    const allSetsCompleted = completedSets.every(set => set); 
+    const isCardio = exerciseDetails?.category === 'Cardio';
+    const isValid = isCardio ? duration > 0 : (sets > 0 && reps > 0 && weight > 0);
+    const allSetsCompleted = isCardio || completedSets.every(set => set);
 
     if (!exerciseDetails) {
         return (
@@ -85,32 +116,44 @@ function SessionScreen() {
             {!workoutStarted ? (
                 <View style={styles.inputContainer}>
                     <View style={styles.inputBox}>
-                        <InputControl label="Sets" value={sets} setValue={setSets} />
-                        <InputControl label="Reps" value={reps} setValue={setReps} />
-                        <InputControl label="Weight (kg)" value={weight} setValue={setWeight} />
+                        {!isCardio && (
+                            <>
+                                <InputControl label="Sets" value={sets} setValue={setSets} />
+                                <InputControl label="Reps" value={reps} setValue={setReps} />
+                                <InputControl label="Weight (kg)" value={weight} setValue={setWeight} />
+                            </>
+                        )}
+                        <InputControl label="Duration (min)" value={duration} setValue={setDuration} />
+                        <InputControl label="Notes" value={notes} setValue={setNotes} isText />
                     </View>
                 </View>
             ) : (
                 <View style={styles.workoutContainer}>
                     <Text style={styles.instructions}>Follow the workout instructions below:</Text>
                     <Text style={styles.instructions}>{exerciseDetails.instructions}</Text>
-                    <Text style={styles.instructions}>- Do this for {reps} reps per set with {weight} kg</Text>
+                    {!isCardio ? (
+                        <Text style={styles.instructions}>- Do this for {reps} reps per set with {weight} kg</Text>
+                    ) : (
+                        <Text style={styles.instructions}>- Perform for {duration} minutes</Text>
+                    )}
 
-                    <View style={styles.setsContainer}>
-                        {Array.from({ length: sets }).map((_, index) => (
-                            <TouchableOpacity key={index} style={styles.setWrapper} onPress={() => toggleSetCompletion(index)}>
-                                <Text style={styles.circleNumber}>{index + 1}</Text>
-                                <View style={styles.circle}>
-                                    <Icon
-                                        name={completedSets[index] ? 'check-circle' : 'cancel'}
-                                        size={24}
-                                        color="white"
-                                        style={styles.icon}
-                                    />
-                                </View>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
+                    {!isCardio && (
+                        <View style={styles.setsContainer}>
+                            {Array.from({ length: sets }).map((_, index) => (
+                                <TouchableOpacity key={index} style={styles.setWrapper} onPress={() => toggleSetCompletion(index)}>
+                                    <Text style={styles.circleNumber}>{index + 1}</Text>
+                                    <View style={styles.circle}>
+                                        <Icon
+                                            name={completedSets[index] ? 'check-circle' : 'cancel'}
+                                            size={24}
+                                            color="white"
+                                            style={styles.icon}
+                                        />
+                                    </View>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    )}
                 </View>
             )}
 
@@ -162,7 +205,6 @@ const styles = StyleSheet.create({
         borderRadius: 15,
         padding: 20,
         marginTop: -50,
-        paddingBottom: -10,
     },
     inputBox: {
         backgroundColor: '#333',
