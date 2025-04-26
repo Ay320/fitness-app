@@ -94,7 +94,6 @@ const MainScreen = () => {
 
   const renderSwipeableActivityPair = ({ item }) => (
     <View style={styles.activityPairContainer}>
-      {/* Stack the two recent activities vertically with a gap */}
       <View style={styles.activityStack}>
         <View style={styles.activityCard}>
           <Image
@@ -129,7 +128,6 @@ const MainScreen = () => {
     </View>
   );
 
-  // Group recent activities into pairs
   const groupedRecentActivities = [];
   for (let i = 0; i < recentActivity.length; i += 2) {
     groupedRecentActivities.push(recentActivity.slice(i, i + 2));
@@ -173,7 +171,7 @@ const MainScreen = () => {
           <Text style={styles.sectionTitle}>Recent Activity</Text>
           {recentActivity.length > 0 ? (
             <FlatList
-              data={groupedRecentActivities} // Grouped activity pairs
+              data={groupedRecentActivities} 
               keyExtractor={(item, index) => index.toString()}
               renderItem={renderSwipeableActivityPair}
               horizontal
