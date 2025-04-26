@@ -64,7 +64,6 @@ const PlanScreen = () => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.planTitle}>{activePlan.plan_name}</Text>
 
-        {/* Plan days and exercises */}
         {planDays.map((day) => (
           <View key={day.plan_day_id} style={styles.dayContainer}>
             <Text style={styles.dayTitle}>Day {day.day_number}</Text>
@@ -95,7 +94,6 @@ const PlanScreen = () => {
         ))}
       </ScrollView>
 
-      {/* Fixed buttons at bottom */}
       <View style={styles.bottomButtons}>
         <TouchableOpacity style={styles.bottomButton} onPress={() => navigation.navigate('ShowPlansScreen')}>
           <Text style={styles.bottomButtonText}>View Plans</Text>
@@ -118,7 +116,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 100, // leave space for bottom buttons
+    paddingBottom: 100,
   },
   noPlanText: {
     color: 'white',
