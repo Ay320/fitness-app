@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { getActivePlan, getPlanDays, getPlanExercises } from '../../src/api/plans';
 import { AuthContext } from '../../src/AuthContext';
@@ -60,38 +60,54 @@ const PlanScreen = () => {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.planTitle}>{activePlan.plan_name}</Text>
-      
-      {planDays.map((day) => (
-        <View key={day.plan_day_id} style={styles.dayContainer}>
-          <Text style={styles.dayTitle}>Day {day.day_number}</Text>
-          
-          {day.exercises.map((exercise) => (
-            <TouchableOpacity
-              key={exercise.plan_exercise_id}
-              style={styles.exerciseCard}
-              onPress={() => navigation.navigate('WorkoutDetailsScreen', { exercise })}
-            >
-              <View style={styles.exerciseContent}>
-                {exercise.image_url && (
-                  <Image
-                    source={{ uri: exercise.image_url }}
-                    style={styles.exerciseImage}
-                  />
-                )}
-                <View style={styles.exerciseText}>
-                  <Text style={styles.exerciseName}>{exercise.exercise_name}</Text>
-                  <Text style={styles.exerciseDetails}>
-                    {exercise.recommended_sets} sets x {exercise.recommended_reps} reps
-                  </Text>
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Text style={styles.planTitle}>{activePlan.plan_name}</Text>
+
+        {/* Plan days and exercises */}
+        {planDays.map((day) => (
+          <View key={day.plan_day_id} style={styles.dayContainer}>
+            <Text style={styles.dayTitle}>Day {day.day_number}</Text>
+
+            {day.exercises.map((exercise) => (
+              <TouchableOpacity
+                key={exercise.plan_exercise_id}
+                style={styles.exerciseCard}
+                onPress={() => navigation.navigate('WorkoutDetailsScreen', { exercise })}
+              >
+                <View style={styles.exerciseContent}>
+                  {exercise.image_url && (
+                    <Image
+                      source={{ uri: exercise.image_url }}
+                      style={styles.exerciseImage}
+                    />
+                  )}
+                  <View style={styles.exerciseText}>
+                    <Text style={styles.exerciseName}>{exercise.exercise_name}</Text>
+                    <Text style={styles.exerciseDetails}>
+                      {exercise.recommended_sets} sets x {exercise.recommended_reps} reps
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-      ))}
-    </ScrollView>
+              </TouchableOpacity>
+            ))}
+          </View>
+        ))}
+      </ScrollView>
+
+      {/* Fixed buttons at bottom */}
+      <View style={styles.bottomButtons}>
+        <TouchableOpacity style={styles.bottomButton} onPress={() => navigation.navigate('ShowPlansScreen')}>
+          <Text style={styles.bottomButtonText}>View Plans</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.bottomButton} onPress={() => navigation.navigate('EditPlanScreen')}>
+          <Text style={styles.bottomButtonText}>Create Plan</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.bottomButton} onPress={() => navigation.navigate('GeneratePlanScreen')}>
+          <Text style={styles.bottomButtonText}>Generate Plan</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 };
 
@@ -99,7 +115,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'black',
+  },
+  scrollContent: {
     padding: 20,
+    paddingBottom: 100, // leave space for bottom buttons
   },
   noPlanText: {
     color: 'white',
@@ -152,6 +171,27 @@ const styles = StyleSheet.create({
     color: 'gray',
     fontSize: 14,
     marginTop: 5,
+  },
+  bottomButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: 'black',
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#333',
+  },
+  bottomButton: {
+    flex: 1,
+    marginHorizontal: 5,
+    backgroundColor: '#333',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  bottomButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 
