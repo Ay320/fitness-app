@@ -417,3 +417,27 @@ export const getActivePlan = async (token: string): Promise<Plan | null> => {
     throw new Error('Failed to fetch active plan.');
   }
 };
+
+export const getViewPlan = async (token: string): Promise<Plan | null> => {
+  try {
+    const response: AxiosResponse<Plan[]> = await apiClient.get('/plans/view', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    
+    // Assuming the response always returns a single temporary plan
+    const viewPlan = response.data[0] || null;
+    
+    if (viewPlan) {
+      return viewPlan;
+    } else {
+      throw new Error('No temporary view plan found.');
+    }
+  } catch (error: any) {
+    if (error.response?.status === 401) {
+      throw new Error('Unauthorized: Invalid or expired token. Please log in again.');
+    }
+    throw new Error('Failed to fetch temporary view plan.');
+  }
+};

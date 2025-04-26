@@ -17,6 +17,8 @@ import SessionScreen     from './app/Screens/SessionScreen';
 import WorkoutDetailsScreen from './app/Screens/WorkoutDetailsScreen';
 import AnalyticsScreen   from './app/Screens/AnalyticsScreen';
 import EditPlanScreen    from './app/Screens/EditPlanScreen';
+import ShowPlansScreen from './app/Screens/ShowPlansScreen';
+import ViewPlanScreen from './app/Screens/ViewPlanScreen';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -58,6 +60,8 @@ export default function App() {
           <Stack.Screen name="WorkoutDetailsScreen" component={WorkoutDetailsScreen} />
           <Stack.Screen name="AnalyticsScreen"   component={AnalyticsScreen} />
           <Stack.Screen name="EditPlanScreen"    component={EditPlanScreen} />
+          <Stack.Screen name="ShowPlansScreen"    component={ShowPlansScreen} />
+          <Stack.Screen name="ViewPlanScreen"    component={ViewPlanScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>

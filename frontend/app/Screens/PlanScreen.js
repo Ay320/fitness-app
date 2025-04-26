@@ -62,8 +62,12 @@ const PlanScreen = () => {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.planTitle}>{activePlan.plan_name}</Text>
+        <View style={styles.planHeader}>
+          <Text style={styles.planTitle}>{activePlan.name}</Text>
+          <Text style={styles.planDescription}>{activePlan.description}</Text>
+        </View>
 
+        {/* Plan days and exercises */}
         {planDays.map((day) => (
           <View key={day.plan_day_id} style={styles.dayContainer}>
             <Text style={styles.dayTitle}>Day {day.day_number}</Text>
@@ -124,11 +128,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
   },
+  planHeader: {
+    marginBottom: 20,
+  },
   planTitle: {
     color: 'white',
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 10,
+  },
+  planDescription: {
+    color: 'gray',
+    fontSize: 16,
   },
   dayContainer: {
     marginBottom: 20,
