@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { View, Text, ScrollView, StyleSheet, Button } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { getPlan, getPlanDays, getPlanExercises } from '../../src/api/plans';
+import { Feather } from '@expo/vector-icons';
+import { getPlan, getPlanDays, getPlanExercises, deletePlan } from '../../src/api/plans';
 import { AuthContext } from '../../src/AuthContext';
 
 const ViewPlanScreen = () => {
@@ -13,7 +14,7 @@ const ViewPlanScreen = () => {
   const { token } = useContext(AuthContext);
   const route = useRoute();
   const navigation = useNavigation();
-  const { plan } = route.params; 
+  const { plan } = route.params;
 
   useEffect(() => {
     const fetchPlanData = async () => {
@@ -22,13 +23,17 @@ const ViewPlanScreen = () => {
         setPlanDetails(fetchedPlanDetails);
 
         const fetchedPlanDays = await getPlanDays(token, plan);
-        setPlanDays(fetchedPlanDays);
+
+        const exercisesArray = await Promise.all(
+          fetchedPlanDays.map((day) => getPlanExercises(token, plan, day.plan_day_id))
+        );
 
         const exercises = {};
-        for (const day of fetchedPlanDays) {
-          const dayExercises = await getPlanExercises(token, plan, day.plan_day_id);
-          exercises[day.plan_day_id] = dayExercises;
-        }
+        fetchedPlanDays.forEach((day, index) => {
+          exercises[day.plan_day_id] = exercisesArray[index];
+        });
+
+        setPlanDays(fetchedPlanDays);
         setExercisesByDay(exercises);
       } catch (error) {
         console.error('Failed to fetch plan data:', error);
@@ -41,138 +46,201 @@ const ViewPlanScreen = () => {
     fetchPlanData();
   }, [plan, token]);
 
+  const handleEditPress = () => {
+    navigation.navigate('EditPlanScreen', {plan });
+  };
+
+  const handleDeletePress = async () => {
+    try {
+      setLoading(true); 
+      await deletePlan(token, plan);
+      navigation.navigate('ShowPlansScreen'); 
+    } catch (error) {
+      console.error('Failed to delete plan:', error);
+      setError('Failed to delete the plan. Please try again later.');
+    } finally {
+      setLoading(false); 
+    }
+  };
+
   const handleBackPress = () => {
     navigation.goBack();
   };
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <Text>Loading...</Text>
-      </View>
+      <ActivityIndicator
+        size="large"
+        color="white"
+        style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+      />
     );
   }
 
   if (error) {
     return (
-      <View style={styles.centered}>
-        <Text>{error}</Text>
+      <View style={styles.container}>
+        <Text style={styles.errorText}>{error}</Text>
       </View>
     );
   }
 
   if (!planDetails) {
     return (
-      <View style={styles.centered}>
-        <Text>No details available for this plan.</Text>
+      <View style={styles.container}>
+        <Text style={styles.errorText}>No details available for this plan.</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.planTitle}>{planDetails.name}</Text>
-      <Text style={styles.planDescription}>
-        {planDetails.description || 'No description available'}
-      </Text>
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+            <Feather name="chevron-left" size={30} color="white" />
+          </TouchableOpacity>
 
-      <Text style={styles.sectionTitle}>Plan Days:</Text>
-      {planDays.length > 0 ? (
-        planDays.map((day) => (
-          <View key={day.plan_day_id} style={styles.dayCard}>
-            <Text style={styles.dayTitle}>Day {day.day_number}</Text>
-            <Text style={styles.dayDescription}>
-              {day.description || 'No description available'}
-            </Text>
-            {exercisesByDay[day.plan_day_id] && exercisesByDay[day.plan_day_id].length > 0 ? (
-              exercisesByDay[day.plan_day_id].map((exercise, index) => (
-                <View key={index} style={styles.exerciseCard}>
-                  <Text style={styles.exerciseName}>{exercise.exercise_name}</Text>
-                  <Text style={styles.exerciseInfo}>
-                    Sets: {exercise.recommended_sets || 'N/A'} | Reps: {exercise.recommended_reps || 'N/A'}
-                  </Text>
-                  <Text style={styles.exerciseDescription}>
-                    {exercise.category} - {exercise.primary_muscle}
-                  </Text>
-                </View>
-              ))
-            ) : (
-              <Text>No exercises available for this day.</Text>
-            )}
+          <View style={styles.titleContainer}>
+            <Text style={styles.planTitle}>{planDetails.name}</Text>
           </View>
-        ))
-      ) : (
-        <Text>No days available for this plan.</Text>
-      )}
 
-      <Button title="Back" onPress={handleBackPress} />
-    </ScrollView>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity onPress={handleEditPress} style={styles.editButton}>
+              <Feather name="edit-2" size={22} color="white" />
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={handleDeletePress} style={styles.deleteButton}>
+              <Feather name="trash-2" size={22} color="white" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <Text style={styles.planDescription}>
+          {planDetails.description || 'No description available'}
+        </Text>
+
+        {planDays.map((day) => (
+          <View key={day.plan_day_id} style={styles.dayContainer}>
+            <Text style={styles.dayTitle}>Day {day.day_number}</Text>
+
+            {(exercisesByDay[day.plan_day_id] || []).map((exercise) => (
+              <TouchableOpacity
+                key={exercise.plan_exercise_id}
+                style={styles.exerciseCard}
+                onPress={() => navigation.navigate('WorkoutDetailsScreen', { exercise })}
+              >
+                <View style={styles.exerciseContent}>
+                  {exercise.image_url && (
+                    <Image
+                      source={{ uri: exercise.image_url }}
+                      style={styles.exerciseImage}
+                    />
+                  )}
+                  <View style={styles.exerciseText}>
+                    <Text style={styles.exerciseName}>{exercise.exercise_name}</Text>
+                    <Text style={styles.exerciseDetails}>
+                      {exercise.recommended_sets} sets x {exercise.recommended_reps} reps
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        ))}
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    backgroundColor: 'black',
   },
-  centered: {
+  scrollContent: {
+    paddingTop: 40,
+    paddingHorizontal: 20,
+    paddingBottom: 100,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  backButton: {
+    padding: 10,
+  },
+  titleContainer: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
   },
   planTitle: {
+    color: 'white',
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 8,
+    textAlign: 'center',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editButton: {
+    padding: 8,
+  },
+  deleteButton: {
+    padding: 8,
   },
   planDescription: {
+    color: 'gray',
     fontSize: 16,
-    color: '#666',
-    marginBottom: 16,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginVertical: 10,
-  },
-  dayCard: {
-    marginBottom: 16,
-    padding: 12,
-    backgroundColor: '#f1f1f1',
-    borderRadius: 8,
+  dayContainer: {
+    marginBottom: 20,
   },
   dayTitle: {
     fontSize: 20,
+    color: 'white',
     fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  dayDescription: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   exerciseCard: {
-    padding: 12,
-    marginBottom: 12,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
+    backgroundColor: '#222',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  exerciseContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  exerciseImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 5,
+    marginRight: 10,
+  },
+  exerciseText: {
+    flex: 1,
   },
   exerciseName: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  exerciseDetails: {
+    color: 'gray',
+    fontSize: 14,
+    marginTop: 5,
+  },
+  errorText: {
+    color: 'white',
     fontSize: 18,
-    fontWeight: 'bold',
-  },
-  exerciseInfo: {
-    fontSize: 14,
-    color: '#555',
-  },
-  exerciseDescription: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 8,
+    textAlign: 'center',
+    marginTop: 20,
   },
 });
 
