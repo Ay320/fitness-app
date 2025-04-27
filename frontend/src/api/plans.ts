@@ -394,28 +394,22 @@ export const removeExerciseFromDay = async (token: string, planId: number, dayId
 }
 
   // Fetch the active user plan (GET /plans)
-export const getActivePlan = async (token: string): Promise<Plan | null> => {
-  try {
-    const response: AxiosResponse<Plan[]> = await apiClient.get('/plans', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    
-    // Find the active plan
-    const activePlan = response.data.find(plan => plan.is_active);
-    
-    if (activePlan) {
-      return activePlan;
-    } else {
-      throw new Error('No active plan found.');
+  export const getActivePlan = async (token: string): Promise<Plan | null> => {
+    try {
+      const response: AxiosResponse<Plan[]> = await apiClient.get('/plans', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+      const activePlan = response.data.find(plan => plan.is_active);
+      return activePlan || null;   // ← return null, don't throw!
+      
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        throw new Error('Unauthorized: Invalid or expired token. Please log in again.');
+      }
+      throw new Error('Failed to fetch active plan.');
     }
-  } catch (error: any) {
-    if (error.response?.status === 401) {
-      throw new Error('Unauthorized: Invalid or expired token. Please log in again.');
-    }
-    throw new Error('Failed to fetch active plan.');
-  }
-};
-
+  };
 
