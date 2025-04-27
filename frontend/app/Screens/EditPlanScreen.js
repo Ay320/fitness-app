@@ -1,8 +1,8 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, Image } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { createPlan, updatePlan, createPlanDay, addExerciseToDay, deletePlan } from '../../src/api/plans';
+import { createPlan, updatePlan, createPlanDay, addExerciseToDay, deletePlan, getPlanDays, getPlanExercises, updatePlanDay, deletePlanDay, removeExerciseFromDay } from '../../src/api/plans';
 import { AuthContext } from '../../src/AuthContext';
 
 const EditPlanScreen = () => {
@@ -10,14 +10,60 @@ const EditPlanScreen = () => {
   const route = useRoute();
   const { token } = useContext(AuthContext);
   const isEditing = !!route.params?.plan;
-  const initialPlan = route.params?.plan || { name: '', description: '', days: [] };
+  const initialPlan = route.params?.plan || { name: '', description: '', days: [], plan_id: null };
 
   const [planName, setPlanName] = useState(initialPlan.name);
   const [description, setDescription] = useState(initialPlan.description);
-  const [days, setDays] = useState(initialPlan.days.map(day => ({ ...day, note: day.note || '' })));
+  const [days, setDays] = useState([]);
+  const [originalDays, setOriginalDays] = useState([]);
+
+  // Fetch existing plan data when editing
+  useEffect(() => {
+    const fetchPlanData = async () => {
+      if (isEditing && initialPlan.plan_id) {
+        console.log('Fetching plan data for planId:', initialPlan.plan_id);
+        try {
+          const fetchedDays = await getPlanDays(token, initialPlan.plan_id);
+          console.log('Fetched days:', fetchedDays.length, 'days');
+          const daysWithExercises = await Promise.all(
+            fetchedDays.map(async (day) => {
+              const exercises = await getPlanExercises(token, initialPlan.plan_id, day.plan_day_id);
+              console.log(`Fetched ${exercises.length} exercises for day ${day.plan_day_id}`);
+              return {
+                plan_day_id: day.plan_day_id,
+                day_number: day.day_number,
+                note: day.description || '',
+                exercises: exercises.map(ex => ({
+                  plan_exercise_id: ex.plan_exercise_id,
+                  id: ex.exercise_id,
+                  name: ex.exercise_name,
+                  image: ex.image_url || 'https://via.placeholder.com/40',
+                })),
+              };
+            })
+          );
+          setDays(daysWithExercises);
+          setOriginalDays(daysWithExercises);
+          console.log('Plan data loaded successfully');
+        } catch (error) {
+          console.error('Failed to fetch plan data:', error.message || error);
+          Alert.alert('Error', 'Failed to load plan details.');
+        }
+      } else {
+        console.log('Initializing new plan with days:', initialPlan.days.length);
+        setDays(initialPlan.days.map(day => ({
+          day_number: day.day_number || 1,
+          note: day.note || '',
+          exercises: day.exercises || [],
+        })));
+      }
+    };
+    fetchPlanData();
+  }, [isEditing, initialPlan.plan_id, token]);
 
   const handleSave = async () => {
     if (!planName.trim()) {
+      console.warn('Plan name is empty');
       Alert.alert('Validation Error', 'Plan name cannot be empty.');
       return;
     }
@@ -33,92 +79,176 @@ const EditPlanScreen = () => {
     let planId;
     try {
       if (isEditing) {
-        await updatePlan(token, initialPlan.id, planData);
-        planId = initialPlan.id;
+        planId = initialPlan.plan_id;
+        console.log('Updating plan:', { planId, ...planData });
+        await updatePlan(token, planId, planData);
+
+        for (const day of days) {
+          if (day.plan_day_id) {
+            const originalDay = originalDays.find(d => d.plan_day_id === day.plan_day_id);
+            if (originalDay && (day.day_number !== originalDay.day_number || day.note !== originalDay.note)) {
+              console.log(`Updating day ${day.plan_day_id} with:`, { day_number: day.day_number, note: day.note });
+              await updatePlanDay(token, planId, day.plan_day_id, { day_number: day.day_number, description: day.note });
+            }
+
+            const originalExercises = originalDay.exercises.map(ex => ex.plan_exercise_id);
+            const currentExercises = day.exercises.map(ex => ex.plan_exercise_id || null);
+            const exercisesToAdd = day.exercises.filter(ex => !ex.plan_exercise_id);
+            const exercisesToRemove = originalExercises.filter(exId => !currentExercises.includes(exId));
+
+            console.log('Original exercises:', originalExercises);
+            console.log('Current exercises:', currentExercises);
+            console.log('Exercises to remove:', exercisesToRemove);
+
+            for (const ex of exercisesToAdd) {
+              console.log(`Adding exercise ${ex.id} to day ${day.plan_day_id}`);
+              await addExerciseToDay(token, planId, day.plan_day_id, { exercise_id: ex.id });
+            }
+            for (const exId of exercisesToRemove) {
+              if (exId) {
+                console.log('Attempting to remove exercise:', { planId, dayId: day.plan_day_id, exerciseId: exId });
+                try {
+                  await removeExerciseFromDay(token, planId, day.plan_day_id, exId);
+                  console.log(`Successfully removed exercise ${exId} from day ${day.plan_day_id}`);
+                } catch (error) {
+                  console.error('Failed to remove exercise:', {
+                    planId,
+                    dayId: day.plan_day_id,
+                    exerciseId: exId,
+                    error: error.message || error,
+                  });
+                  throw new Error(`Failed to remove exercise ${exId} from day ${day.plan_day_id}`);
+                }
+              } else {
+                console.warn('Skipping removal of undefined exercise ID for day:', day.plan_day_id);
+              }
+            }
+          } else {
+            console.log('Creating new day with:', { day_number: day.day_number, note: day.note });
+            const createdDay = await createPlanDay(token, planId, { day_number: day.day_number, description: day.note });
+            for (const ex of day.exercises) {
+              console.log(`Adding exercise ${ex.id} to new day ${createdDay.plan_day_id}`);
+              await addExerciseToDay(token, planId, createdDay.plan_day_id, { exercise_id: ex.id });
+            }
+          }
+        }
+
+        const deletedDays = originalDays.filter(od => !days.some(d => d.plan_day_id === od.plan_day_id));
+        for (const deletedDay of deletedDays) {
+          console.log(`Deleting day ${deletedDay.plan_day_id}`);
+          await deletePlanDay(token, planId, deletedDay.plan_day_id);
+        }
       } else {
+        console.log('Creating new plan:', planData);
         const createdPlan = await createPlan(token, planData);
         planId = createdPlan.plan_id;
 
-        // Add days and exercises, rollback if any step fails
         try {
           for (const day of days) {
             if (!Number.isInteger(day.day_number) || day.day_number < 1) {
-              throw new Error(`Invalid day_number: ${day.day_number}. It must be a positive integer.`);
+              console.error('Invalid day number:', day.day_number);
+              throw new Error(`Invalid day_number: ${day.day_number}.`);
             }
-            const dayData = {
-              day_number: day.day_number,
-              description: day.note || '',
-            };
+            console.log('Creating day:', { day_number: day.day_number, note: day.note });
+            const dayData = { day_number: day.day_number, description: day.note };
             const createdDay = await createPlanDay(token, planId, dayData);
-            const dayId = createdDay.plan_day_id;
-
             for (const exercise of day.exercises) {
-              const exerciseData = {
-                exercise_id: exercise.id,
-              };
-              await addExerciseToDay(token, planId, dayId, exerciseData);
+              console.log(`Adding exercise ${exercise.id} to day ${createdDay.plan_day_id}`);
+              await addExerciseToDay(token, planId, createdDay.plan_day_id, { exercise_id: exercise.id });
             }
           }
         } catch (error) {
-          // If adding days or exercises fails, delete the newly created plan
+          console.error('Rolling back plan creation due to error:', error.message || error);
           await deletePlan(token, planId);
           throw error;
         }
       }
 
+      console.log('Plan saved successfully with ID:', planId);
       Alert.alert('Success', 'Plan saved successfully!');
       navigation.goBack();
     } catch (error) {
-      console.error('Failed to save plan:', error);
-      Alert.alert('Error', error.message || 'Something went wrong while saving the plan.');
+      console.error('Failed to save plan:', {
+        planId,
+        error: error.message || error,
+        stack: error.stack,
+      });
+      Alert.alert('Error', error.message || 'Something went wrong.');
     }
   };
 
   const deleteDay = (index) => {
-    Alert.alert('Delete Day', 'Are you sure you want to delete this day?', [
+    console.log('Prompting to delete day at index:', index);
+    Alert.alert('Delete Day', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
         onPress: () => {
-          const updatedDays = [...days];
-          updatedDays.splice(index, 1);
-          setDays(updatedDays);
+          setDays(prevDays => prevDays.filter((_, i) => i !== index));
+          console.log('Day deleted at index:', index);
         },
       },
     ]);
   };
 
   const deleteExercise = (dayIndex, exerciseIndex) => {
-    const updatedDays = [...days];
-    updatedDays[dayIndex].exercises.splice(exerciseIndex, 1);
-    setDays(updatedDays);
+    console.log(`Deleting exercise at day ${dayIndex}, index ${exerciseIndex}`);
+    setDays(prevDays =>
+      prevDays.map((day, index) =>
+        index === dayIndex
+          ? {
+              ...day,
+              exercises: day.exercises.filter((_, exIndex) => exIndex !== exerciseIndex),
+            }
+          : day
+      )
+    );
   };
 
   const navigateToAddExercise = (dayIndex) => {
+    console.log('Navigating to add exercise for day index:', dayIndex);
     navigation.navigate('FindWorkoutScreen', {
       onSelectExercise: (selectedExercise) => {
-        const updatedDays = [...days];
-        updatedDays[dayIndex].exercises.push(selectedExercise);
-        setDays(updatedDays);
+        setDays(prevDays =>
+          prevDays.map((day, index) =>
+            index === dayIndex
+              ? {
+                  ...day,
+                  exercises: [...day.exercises, selectedExercise],
+                }
+              : day
+          )
+        );
+        console.log('Exercise added to day:', dayIndex);
       },
     });
   };
 
   const addDay = () => {
     const newDayIndex = days.length + 1;
-    const newDay = {
-      day_number: newDayIndex,
-      note: '',
-      exercises: [],
-    };
-    setDays([...days, newDay]);
+    console.log('Adding new day with number:', newDayIndex);
+    setDays(prevDays => [
+      ...prevDays,
+      { day_number: newDayIndex, note: '', exercises: [] },
+    ]);
   };
 
   const updateDayNote = (index, note) => {
-    const updatedDays = [...days];
-    updatedDays[index].note = note;
-    setDays(updatedDays);
+    console.log(`Updating note for day ${index} to:`, note);
+    setDays(prevDays =>
+      prevDays.map((day, i) => (i === index ? { ...day, note } : day))
+    );
+  };
+
+  const updateDayNumber = (index, text) => {
+    const newDayNumber = parseInt(text, 10) || 1;
+    console.log(`Updating day number for day ${index} to:`, newDayNumber);
+    setDays(prevDays =>
+      prevDays.map((day, i) =>
+        i === index ? { ...day, day_number: newDayNumber } : day
+      )
+    );
   };
 
   return (
@@ -143,7 +273,14 @@ const EditPlanScreen = () => {
       {days.map((day, dayIndex) => (
         <View key={dayIndex} style={styles.dayContainer}>
           <View style={styles.dayHeader}>
-            <Text style={styles.dayTitle}>Day {day.day_number}</Text>
+            <TextInput
+              style={styles.dayNumberInput}
+              placeholder="Day #"
+              placeholderTextColor="#aaa"
+              value={day.day_number.toString()}
+              onChangeText={(text) => updateDayNumber(dayIndex, text)}
+              keyboardType="numeric"
+            />
             <TouchableOpacity onPress={() => deleteDay(dayIndex)}>
               <Icon name="trash-can" size={22} color="white" />
             </TouchableOpacity>
@@ -159,11 +296,7 @@ const EditPlanScreen = () => {
             <TouchableOpacity
               key={exIndex}
               style={styles.exerciseItem}
-              onPress={() =>
-                navigation.navigate('WorkoutDetailsScreen', {
-                  workoutId: exercise.id,
-                })
-              }
+              onPress={() => navigation.navigate('WorkoutDetailsScreen', { workoutId: exercise.id })}
             >
               <Image source={{ uri: exercise.image }} style={styles.exerciseImage} />
               <Text style={styles.exerciseText}>{exercise.name}</Text>
@@ -191,9 +324,7 @@ const EditPlanScreen = () => {
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-        <Text style={styles.saveButtonText}>
-          {isEditing ? 'Save Plan' : 'Create Plan'}
-        </Text>
+        <Text style={styles.saveButtonText}>{isEditing ? 'Save Plan' : 'Create Plan'}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -230,10 +361,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  dayTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  dayNumberInput: {
+    backgroundColor: '#333',
     color: 'white',
+    padding: 8,
+    borderRadius: 6,
+    width: 80,
+    fontSize: 16,
   },
   exerciseItem: {
     flexDirection: 'row',

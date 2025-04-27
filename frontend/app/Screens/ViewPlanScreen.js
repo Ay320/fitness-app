@@ -2,7 +2,7 @@ import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Image, Alert } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
-import { getPlan, getPlanDays, getPlanExercises, deletePlan,setPlanActive } from '../../src/api/plans';
+import { getPlan, getPlanDays, getPlanExercises, deletePlan, setPlanActive } from '../../src/api/plans';
 import { AuthContext } from '../../src/AuthContext';
 
 const ViewPlanScreen = () => {
@@ -23,7 +23,6 @@ const ViewPlanScreen = () => {
         setPlanDetails(fetchedPlanDetails);
 
         const fetchedPlanDays = await getPlanDays(token, plan);
-
         const exercisesArray = await Promise.all(
           fetchedPlanDays.map((day) => getPlanExercises(token, plan, day.plan_day_id))
         );
@@ -47,7 +46,24 @@ const ViewPlanScreen = () => {
   }, [plan, token]);
 
   const handleEditPress = () => {
-    navigation.navigate('EditPlanScreen', { plan });
+    navigation.navigate('EditPlanScreen', {
+      plan: {
+        plan_id: planDetails.plan_id,
+        name: planDetails.name,
+        description: planDetails.description,
+        days: planDays.map(day => ({
+          plan_day_id: day.plan_day_id,
+          day_number: day.day_number,
+          note: day.description || '',
+          exercises: (exercisesByDay[day.plan_day_id] || []).map(ex => ({
+            plan_exercise_id: ex.plan_exercise_id,
+            id: ex.exercise_id,
+            name: ex.exercise_name,
+            image: ex.image_url || 'https://via.placeholder.com/40', 
+          })),
+        })),
+      },
+    });
   };
 
   const handleDeletePress = async () => {
@@ -69,7 +85,7 @@ const ViewPlanScreen = () => {
 
   const handleSetActivePress = async () => {
     try {
-      setPlanActive(token, plan);
+      await setPlanActive(token, plan);
       Alert.alert('Plan Set Active', `You have set "${planDetails.name}" as your active plan.`);
     } catch (error) {
       console.error('Failed to set active plan:', error);
@@ -160,7 +176,6 @@ const ViewPlanScreen = () => {
         ))}
       </ScrollView>
 
-      {/* Set Active Button at the bottom */}
       <TouchableOpacity style={styles.setActiveButton} onPress={handleSetActivePress}>
         <Text style={styles.setActiveButtonText}>Set Active Plan</Text>
       </TouchableOpacity>
@@ -176,7 +191,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: 40,
     paddingHorizontal: 20,
-    paddingBottom: 140, // increased so content isn't hidden behind button
+    paddingBottom: 140,
   },
   header: {
     flexDirection: 'row',
