@@ -105,11 +105,10 @@ const EditPlanScreen = () => {
               style={styles.exerciseItem}
               onPress={() =>
                 navigation.navigate('WorkoutDetailsScreen', {
-                  workoutId: exercise.id, // Pass the workout ID to the details screen
+                  workoutId: exercise.id, 
                 })
               }
             >
-              {/* Display the exercise image */}
               <Image source={{ uri: exercise.image }} style={styles.exerciseImage} />
               <Text style={styles.exerciseText}>{exercise.name}</Text>
               <TouchableOpacity
