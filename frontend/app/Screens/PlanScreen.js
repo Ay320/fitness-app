@@ -38,8 +38,8 @@ const PlanScreen = () => {
         exercises: excludedExercisesArray,
         equipment: excludedEquipmentArray,
       },
-      plan_name: planName || 'My Generated Plan',
-      description: description || 'A custom generated workout plan',
+      plan_name: planName || 'My AI Generated Plan',
+      description: description || 'A custom AI generated workout plan',
     };
 
     try {
@@ -222,13 +222,13 @@ const PlanScreen = () => {
           <Text style={styles.bottomButtonText}>View Plans</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.bottomButton} onPress={() => navigation.navigate('EditPlanScreen')}>
-          <Text style={styles.bottomButtonText}>Create Plan</Text>
+          <Text style={styles.bottomButtonText}>Create a Plan manually</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.bottomButton}
           onPress={() => setShowGenerateForm(true)}
         >
-          <Text style={styles.bottomButtonText}>Generate Plan</Text>
+          <Text style={styles.bottomButtonText}>Generate a Plan using AI</Text>
         </TouchableOpacity>
       </View>
     </View>
