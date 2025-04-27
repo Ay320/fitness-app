@@ -63,36 +63,10 @@ const PlanScreen = () => {
     navigation.goBack();
   };
 
-  if (loading) {
-    return (
-      <ActivityIndicator
-        size="large"
-        color="white"
-        style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'black' }}
-      />
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>{error}</Text>
-      </View>
-    );
-  }
-
-  if (!activePlan) {
-    return (
-      <View style={styles.centered}>
-        <Text style={styles.noPlanText}>No active plan found.</Text>
-      </View>
-    );
-  }
-
   const renderExerciseItem = ({ item }) => (
     <TouchableOpacity
       style={styles.exerciseCard}
-      onPress={() => navigation.navigate('WorkoutDetailsScreen', { exercise: item })}
+      onPress={() => navigation.navigate('WorkoutDetailsScreen', { exercise })}
     >
       <View style={styles.exerciseContent}>
         {item.image_url && (
@@ -124,20 +98,41 @@ const PlanScreen = () => {
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
           <Feather name="chevron-left" size={22} color="white" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{activePlan.name}</Text>
+        <Text style={styles.headerTitle}>
+          {activePlan ? activePlan.name : 'My Plan'}
+        </Text>
       </View>
 
-      <FlatList
-        data={planDays}
-        keyExtractor={(item) => item.plan_day_id.toString()}
-        contentContainerStyle={styles.listContent}
-        renderItem={renderDayItem}
-      />
+      {/* Main content */}
+      <View style={styles.content}>
+        {loading ? (
+          <View style={styles.centered}>
+            <ActivityIndicator size="large" color="white" />
+          </View>
+        ) : error ? (
+          <View style={styles.centered}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : !activePlan ? (
+          <View style={styles.centered}>
+            <Text style={styles.noPlanText}>No active plan found.</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={planDays}
+            keyExtractor={(item) => item.plan_day_id.toString()}
+            contentContainerStyle={styles.listContent}
+            renderItem={renderDayItem}
+          />
+        )}
+      </View>
 
+      {/* Bottom Buttons */}
       <View style={styles.bottomButtons}>
         <TouchableOpacity style={styles.bottomButton} onPress={() => navigation.navigate('ShowPlansScreen')}>
           <Text style={styles.bottomButtonText}>View Plans</Text>
@@ -180,9 +175,12 @@ const styles = StyleSheet.create({
     color: 'white',
     textAlign: 'center',
   },
+  content: {
+    flex: 1,
+  },
   listContent: {
     padding: 20,
-    paddingBottom: 100,
+    paddingBottom: 100, // padding for bottom buttons
   },
   dayContainer: {
     marginBottom: 20,
@@ -224,6 +222,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 5,
   },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  noPlanText: {
+    color: 'white',
+    fontSize: 18,
+    textAlign: 'center',
+  },
   bottomButtons: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -244,23 +258,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     fontWeight: '600',
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'black',
-    padding: 20,
-  },
-  errorText: {
-    color: 'red',
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  noPlanText: {
-    color: 'white',
-    fontSize: 18,
-    textAlign: 'center',
   },
 });
 
