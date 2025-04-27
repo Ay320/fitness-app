@@ -33,7 +33,7 @@ const ShowPlansScreen = () => {
   };
 
   const handleBackPress = () => {
-    navigation.goBack();
+    navigation.navigate("PlanScreen");
   };
 
   if (loading) {
