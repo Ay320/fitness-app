@@ -5,9 +5,6 @@ import { Feather } from '@expo/vector-icons';
 import { getActivePlan, getPlanDays, getPlanExercises, generatePlan } from '../../src/api/plans';
 import { AuthContext } from '../../src/AuthContext';
 
-// Define available muscle groups 
-const muscleGroups = ['Chest', 'Back', 'Legs', 'Shoulders', 'Biceps', 'Triceps', 'Core', 'Cardio'];
-
 const PlanScreen = () => {
   const navigation = useNavigation();
   const { token } = useContext(AuthContext);
@@ -19,7 +16,8 @@ const PlanScreen = () => {
 
   // States for user inputs
   const [daysPerWeek, setDaysPerWeek] = useState('');
-  const [preferences, setPreferences] = useState([]);
+  const [excludedExercises, setExcludedExercises] = useState('');
+  const [excludedEquipment, setExcludedEquipment] = useState('');
   const [planName, setPlanName] = useState('');
   const [description, setDescription] = useState('');
   const [showGenerateForm, setShowGenerateForm] = useState(false);
@@ -30,9 +28,16 @@ const PlanScreen = () => {
       return;
     }
 
+    // Parse excluded exercises and equipment into arrays
+    const excludedExercisesArray = excludedExercises.split(',').map(item => item.trim()).filter(item => item);
+    const excludedEquipmentArray = excludedEquipment.split(',').map(item => item.trim()).filter(item => item);
+
     const requestData = {
       days_per_week: parseInt(daysPerWeek, 10),
-      preferences: preferences.length > 0 ? { muscle_groups: preferences } : undefined,
+      preferences: {
+        exercises: excludedExercisesArray,
+        equipment: excludedEquipmentArray,
+      },
       plan_name: planName || 'My Generated Plan',
       description: description || 'A custom generated workout plan',
     };
@@ -42,7 +47,8 @@ const PlanScreen = () => {
       navigation.navigate('ViewPlanScreen', { plan: generatedPlan.plan_id });
       setShowGenerateForm(false); // Hide form after successful generation
       setDaysPerWeek('');
-      setPreferences([]);
+      setExcludedExercises('');
+      setExcludedEquipment('');
       setPlanName('');
       setDescription('');
     } catch (error) {
@@ -81,12 +87,6 @@ const PlanScreen = () => {
 
   const handleBackPress = () => {
     navigation.goBack();
-  };
-
-  const togglePreference = (muscle) => {
-    setPreferences((prev) =>
-      prev.includes(muscle) ? prev.filter((m) => m !== muscle) : [...prev, muscle]
-    );
   };
 
   const renderExerciseItem = ({ item }) => (
@@ -172,18 +172,21 @@ const PlanScreen = () => {
             onChangeText={setDaysPerWeek}
           />
 
-          <Text style={styles.label}>Select Muscle Groups (optional)</Text>
-          <View style={styles.muscleGroupContainer}>
-            {muscleGroups.map((muscle) => (
-              <TouchableOpacity
-                key={muscle}
-                style={[styles.muscleButton, preferences.includes(muscle) && styles.selectedMuscle]}
-                onPress={() => togglePreference(muscle)}
-              >
-                <Text style={styles.muscleText}>{muscle}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <TextInput
+            style={styles.input}
+            placeholder="Exclude exercises (e.g., Push-ups, Squats)"
+            placeholderTextColor="#888"
+            value={excludedExercises}
+            onChangeText={setExcludedExercises}
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Exclude equipment (e.g., Dumbbells, Barbell)"
+            placeholderTextColor="#888"
+            value={excludedEquipment}
+            onChangeText={setExcludedEquipment}
+          />
 
           <TextInput
             style={styles.input}
@@ -365,29 +368,6 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginBottom: 15,
-  },
-  label: {
-    fontSize: 16,
-    color: 'white',
-    marginBottom: 10,
-  },
-  muscleGroupContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 20,
-  },
-  muscleButton: {
-    backgroundColor: '#444',
-    padding: 10,
-    borderRadius: 5,
-    margin: 5,
-  },
-  selectedMuscle: {
-    backgroundColor: '#4CAF50',
-  },
-  muscleText: {
-    color: 'white',
-    fontSize: 14,
   },
   generateButton: {
     backgroundColor: '#4CAF50',
