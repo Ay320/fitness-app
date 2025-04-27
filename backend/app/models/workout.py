@@ -2,8 +2,8 @@ from pydantic import BaseModel
 from typing import Optional
 
 class WorkoutLogCreate(BaseModel):
-    sets: int
-    reps: int
+    sets: Optional[int]
+    reps: Optional[int]
     duration_minutes: Optional[float] = None
     weight: Optional[float] = None
     notes: Optional[str] = None
