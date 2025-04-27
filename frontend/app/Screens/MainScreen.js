@@ -18,6 +18,7 @@ import { getWorkoutLogs } from '../../src/api/workouts';
 import { syncUser } from '../../src/api/authApi';
 import { getUserStreak } from '../../src/api/user';
 import { AuthContext } from '../../src/AuthContext';
+import { exercises } from './Exercises'; // Import local exercises for image lookup
 
 const { width } = Dimensions.get('window');
 
@@ -110,17 +111,28 @@ const MainScreen = () => {
 
   const renderSwipeableActivityPair = ({ item, index }) => (
     <View key={`pair-${index}`} style={styles.activityPairContainer}>
-      {item.map((activity, activityIndex) => (
-        <View
-          key={`activity-${activity.workout_log_id || activityIndex}`}
-          style={styles.activityCard}
-        >
-          <Text style={styles.activityTitle}>{activity.exercise_name}</Text>
-          <Text style={styles.activityDate}>
-            {new Date(activity.date_logged).toLocaleDateString()}
-          </Text>
-        </View>
-      ))}
+      {item.map((activity, activityIndex) => {
+        // Find the exercise in the local exercises array to get the image
+        const fullExercise = exercises.find(ex => String(ex.id) === String(activity.exercise_id));
+        const imageUrl = fullExercise ? fullExercise.image : 'https://via.placeholder.com/50'; // Fallback image
+        return (
+          <View
+            key={`activity-${activity.workout_log_id || activityIndex}`}
+            style={styles.activityCard}
+          >
+            <Image
+              source={{ uri: imageUrl }}
+              style={styles.activityImage}
+            />
+            <View style={styles.activityText}>
+              <Text style={styles.activityTitle}>{activity.exercise_name}</Text>
+              <Text style={styles.activityDate}>
+                {new Date(activity.date_logged).toLocaleDateString()}
+              </Text>
+            </View>
+          </View>
+        );
+      })}
       {item.length === 1 && <View key="placeholder" style={styles.activityCardPlaceholder} />}
     </View>
   );
@@ -194,20 +206,35 @@ const MainScreen = () => {
             renderItem={({ item }) => (
               <View style={styles.scrollDayCard}>
                 <Text style={styles.workoutDayTitle}>Day {item.day}</Text>
-                {item.exercises.map((exercise) => (
-                  <View key={exercise.plan_exercise_id} style={styles.scrollWorkoutCard}>
-                    <Text style={styles.workoutName}>{exercise.exercise_name}</Text>
-                    <Text style={styles.workoutDescription}>
-                      {exercise.recommended_sets} sets x {exercise.recommended_reps} reps
-                    </Text>
-                  </View>
-                ))}
+                {item.exercises.map((exercise) => {
+                  // Find the exercise in the local exercises array to get the image
+                  const fullExercise = exercises.find(ex => String(ex.id) === String(exercise.exercise_id));
+                  const imageUrl = fullExercise ? fullExercise.image : 'https://via.placeholder.com/50'; // Fallback image
+                  return (
+                    <TouchableOpacity
+                      key={exercise.plan_exercise_id}
+                      style={styles.scrollWorkoutCard}
+                      onPress={() => navigation.navigate('WorkoutDetailsScreen', { exercise })}
+                    >
+                      <Image
+                        source={{ uri: imageUrl }}
+                        style={styles.workoutImage}
+                      />
+                      <View style={styles.workoutText}>
+                        <Text style={styles.workoutName}>{exercise.exercise_name}</Text>
+                        <Text style={styles.workoutDescription}>
+                          {exercise.recommended_sets} sets x {exercise.recommended_reps} reps
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             )}
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingVertical: 10 }}
-            style={{ maxHeight: 250 }}
+            style={{ maxHeight: 950 }}
           />
         ) : (
           <Text style={styles.noWorkoutsText}>No upcoming workouts found.</Text>
@@ -298,15 +325,22 @@ const styles = StyleSheet.create({
     marginRight: 20,
   },
   activityCard: {
+    flexDirection: 'row', // Layout image and text side by side
+    alignItems: 'center',
     backgroundColor: '#333',
     padding: 15,
     borderRadius: 10,
     width: (width - 60) / 2,
     marginRight: 10,
   },
-  activityCardPlaceholder: {
-    width: (width - 60) / 2,
+  activityImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25, // Circular image
     marginRight: 10,
+  },
+  activityText: {
+    flex: 1,
   },
   activityTitle: {
     fontSize: 16,
@@ -317,6 +351,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#aaa',
     marginTop: 5,
+  },
+  activityCardPlaceholder: {
+    width: (width - 60) / 2,
+    marginRight: 10,
   },
   noActivityText: {
     fontSize: 16,
@@ -344,10 +382,21 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   scrollWorkoutCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#444',
     padding: 10,
     borderRadius: 5,
     marginBottom: 10,
+  },
+  workoutImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25, // Circular image
+    marginRight: 10,
+  },
+  workoutText: {
+    flex: 1,
   },
   workoutName: {
     fontSize: 16,

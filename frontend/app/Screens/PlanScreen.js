@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { getActivePlan, getPlanDays, getPlanExercises, generatePlan } from '../../src/api/plans';
 import { AuthContext } from '../../src/AuthContext';
+import { exercises } from './Exercises'; // Import local exercises array for image lookup
 
 const PlanScreen = () => {
   const navigation = useNavigation();
@@ -89,27 +90,29 @@ const PlanScreen = () => {
     navigation.goBack();
   };
 
-  const renderExerciseItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.exerciseCard}
-      onPress={() => navigation.navigate('WorkoutDetailsScreen', { exercise: item })}
-    >
-      <View style={styles.exerciseContent}>
-        {item.image_url && (
-          <Image
-            source={{ uri: item.image_url }}
-            style={styles.exerciseImage}
-          />
-        )}
+  const renderExerciseItem = ({ item }) => {
+    // Find the exercise in the local exercises array to get the image
+    const fullExercise = exercises.find(ex => String(ex.id) === String(item.exercise_id));
+    const imageUrl = fullExercise ? fullExercise.image : 'https://via.placeholder.com/50'; // Fallback image
+
+    return (
+      <TouchableOpacity
+        style={styles.exerciseCard}
+        onPress={() => navigation.navigate('WorkoutDetailsScreen', { exercise: item })}
+      >
+        <Image
+          source={{ uri: imageUrl }}
+          style={styles.exerciseImage}
+        />
         <View style={styles.exerciseText}>
           <Text style={styles.exerciseName}>{item.exercise_name}</Text>
           <Text style={styles.exerciseDetails}>
             {item.recommended_sets} sets x {item.recommended_reps} reps
           </Text>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   const renderDayItem = ({ item }) => (
     <View style={styles.dayContainer}>
@@ -222,13 +225,13 @@ const PlanScreen = () => {
           <Text style={styles.bottomButtonText}>View Plans</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.bottomButton} onPress={() => navigation.navigate('EditPlanScreen')}>
-          <Text style={styles.bottomButtonText}>Create a Plan manually</Text>
+          <Text style={styles.bottomButtonText}>Create Plan</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.bottomButton}
           onPress={() => setShowGenerateForm(true)}
         >
-          <Text style={styles.bottomButtonText}>Generate a Plan using AI</Text>
+          <Text style={styles.bottomButtonText}>Generate Plan</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -253,14 +256,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 20,
     top: 20,
-    zIndex: 1,
     padding: 10,
   },
   headerTitle: {
     fontSize: 26,
     fontWeight: 'bold',
     color: 'white',
-    textAlign: 'center',
   },
   content: {
     flex: 1,
@@ -279,21 +280,17 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   exerciseCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#222',
     borderRadius: 10,
     padding: 15,
     marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  exerciseContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   exerciseImage: {
     width: 50,
     height: 50,
-    borderRadius: 5,
+    borderRadius: 25, // Circular image
     marginRight: 10,
   },
   exerciseText: {
@@ -307,7 +304,6 @@ const styles = StyleSheet.create({
   exerciseDetails: {
     color: 'gray',
     fontSize: 14,
-    marginTop: 5,
   },
   centered: {
     flex: 1,

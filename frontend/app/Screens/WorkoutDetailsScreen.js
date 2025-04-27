@@ -6,27 +6,63 @@ import { exercises } from './Exercises';
 function WorkoutDetailsScreen({ route }) {
     const {
         workoutId,
-        fromAddWorkout, 
-        onSelectExercise, 
-    } = route.params;
+        exercise, 
+        fromAddWorkout,
+        onSelectExercise,
+    } = route.params || {};
 
     const [workout, setWorkout] = useState(null);
     const navigation = useNavigation();
 
     useEffect(() => {
-        const selectedWorkout = exercises.find((exercise) => exercise.id === workoutId);
-        setWorkout(selectedWorkout);
-    }, [workoutId]);
+        if (exercise) {
+            // find the full exercise in the local exercises array
+            const fullExercise = exercises.find(ex => String(ex.id) === String(exercise.exercise_id));
+            if (fullExercise) {
+                // Merge fullExercise with plan-specific recommendations
+                const mergedWorkout = {
+                    ...fullExercise,
+                    recommendedSets: exercise.recommended_sets || fullExercise.recommendedSets,
+                    recommendedReps: exercise.recommended_reps || fullExercise.recommendedReps,
+                    recommendedTime: exercise.recommended_duration || fullExercise.recommendedTime,
+                };
+                setWorkout(mergedWorkout);
+            } else {
+                // Fallback to normalized workout with defaults
+                const normalizedWorkout = {
+                    id: exercise.exercise_id,
+                    name: exercise.exercise_name || 'Unknown',
+                    image: 'https://via.placeholder.com/150',
+                    primMusc: exercise.primary_muscle || 'N/A',
+                    secondMusc: 'N/A',
+                    diffLvl: 'N/A',
+                    category: exercise.category || 'N/A',
+                    equipment: 'N/A',
+                    recommendedSets: exercise.recommended_sets || 'N/A',
+                    recommendedReps: exercise.recommended_reps || 'N/A',
+                    recommendedTime: exercise.recommended_duration || 'N/A',
+                    instructions: 'N/A',
+                };
+                setWorkout(normalizedWorkout);
+            }
+        } else if (workoutId) {
+            // Fallback to finding workout by ID in local exercises array
+            const selectedWorkout = exercises.find((ex) => ex.id === workoutId);
+            setWorkout(selectedWorkout);
+        }
+    }, [workoutId, exercise]);
 
     const handleAddToSchedule = () => {
-        if (onSelectExercise) {
-            onSelectExercise(workout); 
-            navigation.goBack(); 
+        if (onSelectExercise && workout) {
+            onSelectExercise(workout);
+            navigation.goBack();
         }
     };
 
     const handleStartWorkout = () => {
-        navigation.navigate('SessionScreen', { id: workoutId });
+        if (workout) {
+            navigation.navigate('SessionScreen', { workout });
+        }
     };
 
     if (!workout) {
@@ -94,9 +130,9 @@ const styles = StyleSheet.create({
     },
     bannerImage: {
         width: '100%',
-        height: 250,
+        height: 320,
         borderRadius: 10,
-        marginBottom: 20,
+        marginBottom: 60,
     },
     detailsContainer: {
         backgroundColor: '#333',

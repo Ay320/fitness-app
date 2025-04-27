@@ -4,6 +4,7 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { getPlan, getPlanDays, getPlanExercises, deletePlan, setPlanActive } from '../../src/api/plans';
 import { AuthContext } from '../../src/AuthContext';
+import { exercises } from './Exercises'; // Import local exercises for image lookup
 
 const ViewPlanScreen = () => {
   const [planDetails, setPlanDetails] = useState(null);
@@ -150,28 +151,29 @@ const ViewPlanScreen = () => {
           <View key={day.plan_day_id} style={styles.dayContainer}>
             <Text style={styles.dayTitle}>Day {day.day_number}</Text>
 
-            {(exercisesByDay[day.plan_day_id] || []).map((exercise) => (
-              <TouchableOpacity
-                key={exercise.plan_exercise_id}
-                style={styles.exerciseCard}
-                onPress={() => navigation.navigate('WorkoutDetailsScreen', { exercise })}
-              >
-                <View style={styles.exerciseContent}>
-                  {exercise.image_url && (
-                    <Image
-                      source={{ uri: exercise.image_url }}
-                      style={styles.exerciseImage}
-                    />
-                  )}
+            {(exercisesByDay[day.plan_day_id] || []).map((exercise) => {
+              // Find the exercise in the local exercises array to get the image
+              const fullExercise = exercises.find(ex => String(ex.id) === String(exercise.exercise_id));
+              const imageUrl = fullExercise ? fullExercise.image : 'https://via.placeholder.com/50'; // Fallback image
+              return (
+                <TouchableOpacity
+                  key={exercise.plan_exercise_id}
+                  style={styles.exerciseCard}
+                  onPress={() => navigation.navigate('WorkoutDetailsScreen', { exercise })}
+                >
+                  <Image
+                    source={{ uri: imageUrl }}
+                    style={styles.exerciseImage}
+                  />
                   <View style={styles.exerciseText}>
                     <Text style={styles.exerciseName}>{exercise.exercise_name}</Text>
                     <Text style={styles.exerciseDetails}>
                       {exercise.recommended_sets} sets x {exercise.recommended_reps} reps
                     </Text>
                   </View>
-                </View>
-              </TouchableOpacity>
-            ))}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         ))}
       </ScrollView>
@@ -236,21 +238,17 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   exerciseCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#222',
     borderRadius: 10,
     padding: 15,
     marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  exerciseContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   exerciseImage: {
     width: 50,
     height: 50,
-    borderRadius: 5,
+    borderRadius: 25, // Circular image
     marginRight: 10,
   },
   exerciseText: {

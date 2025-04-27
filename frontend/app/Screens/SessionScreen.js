@@ -43,7 +43,7 @@ const InputControl = ({ label, value, setValue, isText = false }) => {
 function SessionScreen() {
     const navigation = useNavigation();
     const route = useRoute();
-    const { id } = route.params;
+    const { workout, id } = route.params || {};
     const { token } = useContext(AuthContext);
     const [sets, setSets] = useState(3);
     const [reps, setReps] = useState(10);
@@ -55,10 +55,14 @@ function SessionScreen() {
     const [completedSets, setCompletedSets] = useState(new Array(sets).fill(false));
 
     useEffect(() => {
-        const exercise = exercises.find(exercise => exercise.id === id);
-        setExerciseDetails(exercise);
+        if (workout) {
+            setExerciseDetails(workout);
+        } else if (id) {
+            const exercise = exercises.find(exercise => exercise.id === id);
+            setExerciseDetails(exercise);
+        }
         setCompletedSets(new Array(sets).fill(false));
-    }, [id, sets]);
+    }, [id, workout, sets]);
 
     const handleStart = () => {
         setWorkoutStarted(true);
@@ -109,7 +113,7 @@ function SessionScreen() {
                 <Text style={styles.backButtonText}>Back</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => navigation.navigate('WorkoutDetailsScreen', { workoutId: id })} style={styles.infoButton}>
+            <TouchableOpacity onPress={() => navigation.navigate('WorkoutDetailsScreen', { workoutId: exerciseDetails.id })} style={styles.infoButton}>
                 <Icon name="info-outline" size={28} color="white" />
             </TouchableOpacity>
 
