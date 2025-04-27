@@ -1,17 +1,20 @@
-import React, { useState } from 'react';
-import {View,Text,TextInput,TouchableOpacity,ScrollView,StyleSheet,Alert,Image,} from 'react-native';
+import React, { useState, useContext } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, Image } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { createPlan, updatePlan } from '../../src/api/plans';
+import { createPlan, updatePlan, createPlanDay, addExerciseToDay, deletePlan } from '../../src/api/plans';
+import { AuthContext } from '../../src/AuthContext';
 
 const EditPlanScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
+  const { token } = useContext(AuthContext);
   const isEditing = !!route.params?.plan;
-  const initialPlan = route.params?.plan || { name: '', days: [] };
+  const initialPlan = route.params?.plan || { name: '', description: '', days: [] };
 
   const [planName, setPlanName] = useState(initialPlan.name);
-  const [days, setDays] = useState(initialPlan.days);
+  const [description, setDescription] = useState(initialPlan.description);
+  const [days, setDays] = useState(initialPlan.days.map(day => ({ ...day, note: day.note || '' })));
 
   const handleSave = async () => {
     if (!planName.trim()) {
@@ -19,22 +22,55 @@ const EditPlanScreen = () => {
       return;
     }
 
-    const updatedPlan = { name: planName, days };
+    const daysPerWeek = days.length;
+    const planData = {
+      name: planName,
+      description: description || '',
+      days_per_week: daysPerWeek,
+      preferred_days: null,
+    };
 
-    console.log('Plan to be created:', updatedPlan);
-
+    let planId;
     try {
       if (isEditing) {
-        await updatePlan(initialPlan.id, updatedPlan);
-        console.log('Updated plan:', updatedPlan);
+        await updatePlan(token, initialPlan.id, planData);
+        planId = initialPlan.id;
       } else {
-        await createPlan(updatedPlan);
-        console.log('New plan:', updatedPlan);
+        const createdPlan = await createPlan(token, planData);
+        planId = createdPlan.plan_id;
+
+        // Add days and exercises, rollback if any step fails
+        try {
+          for (const day of days) {
+            if (!Number.isInteger(day.day_number) || day.day_number < 1) {
+              throw new Error(`Invalid day_number: ${day.day_number}. It must be a positive integer.`);
+            }
+            const dayData = {
+              day_number: day.day_number,
+              description: day.note || '',
+            };
+            const createdDay = await createPlanDay(token, planId, dayData);
+            const dayId = createdDay.plan_day_id;
+
+            for (const exercise of day.exercises) {
+              const exerciseData = {
+                exercise_id: exercise.id,
+              };
+              await addExerciseToDay(token, planId, dayId, exerciseData);
+            }
+          }
+        } catch (error) {
+          // If adding days or exercises fails, delete the newly created plan
+          await deletePlan(token, planId);
+          throw error;
+        }
       }
+
+      Alert.alert('Success', 'Plan saved successfully!');
       navigation.goBack();
     } catch (error) {
-      console.error('Failed to save plan:', error.response || error.message || error);
-      Alert.alert('Error', 'Something went wrong while saving the plan.');
+      console.error('Failed to save plan:', error);
+      Alert.alert('Error', error.message || 'Something went wrong while saving the plan.');
     }
   };
 
@@ -59,7 +95,7 @@ const EditPlanScreen = () => {
     setDays(updatedDays);
   };
 
-  const addExerciseToDay = (dayIndex) => {
+  const navigateToAddExercise = (dayIndex) => {
     navigation.navigate('FindWorkoutScreen', {
       onSelectExercise: (selectedExercise) => {
         const updatedDays = [...days];
@@ -72,10 +108,17 @@ const EditPlanScreen = () => {
   const addDay = () => {
     const newDayIndex = days.length + 1;
     const newDay = {
-      day: `Day ${newDayIndex}`,
+      day_number: newDayIndex,
+      note: '',
       exercises: [],
     };
     setDays([...days, newDay]);
+  };
+
+  const updateDayNote = (index, note) => {
+    const updatedDays = [...days];
+    updatedDays[index].note = note;
+    setDays(updatedDays);
   };
 
   return (
@@ -89,23 +132,36 @@ const EditPlanScreen = () => {
         value={planName}
         onChangeText={setPlanName}
       />
+      <TextInput
+        style={styles.input}
+        placeholder="Description (optional)"
+        placeholderTextColor="#aaa"
+        value={description}
+        onChangeText={setDescription}
+      />
 
       {days.map((day, dayIndex) => (
         <View key={dayIndex} style={styles.dayContainer}>
           <View style={styles.dayHeader}>
-            <Text style={styles.dayTitle}>{day.day}</Text>
+            <Text style={styles.dayTitle}>Day {day.day_number}</Text>
             <TouchableOpacity onPress={() => deleteDay(dayIndex)}>
               <Icon name="trash-can" size={22} color="white" />
             </TouchableOpacity>
           </View>
-
+          <TextInput
+            style={styles.input}
+            placeholder="Note (e.g., Pull Day)"
+            placeholderTextColor="#aaa"
+            value={day.note}
+            onChangeText={(text) => updateDayNote(dayIndex, text)}
+          />
           {day.exercises.map((exercise, exIndex) => (
             <TouchableOpacity
               key={exIndex}
               style={styles.exerciseItem}
               onPress={() =>
                 navigation.navigate('WorkoutDetailsScreen', {
-                  workoutId: exercise.id, 
+                  workoutId: exercise.id,
                 })
               }
             >
@@ -119,10 +175,9 @@ const EditPlanScreen = () => {
               </TouchableOpacity>
             </TouchableOpacity>
           ))}
-
           <TouchableOpacity
             style={styles.addExerciseButton}
-            onPress={() => addExerciseToDay(dayIndex)}
+            onPress={() => navigateToAddExercise(dayIndex)}
           >
             <Icon name="plus" size={18} color="white" />
             <Text style={styles.addExerciseText}>Add Exercise</Text>
