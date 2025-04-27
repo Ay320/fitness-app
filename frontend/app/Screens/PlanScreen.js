@@ -1,9 +1,12 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { View, Text, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, Image, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { getActivePlan, getPlanDays, getPlanExercises, generatePlan } from '../../src/api/plans';
 import { AuthContext } from '../../src/AuthContext';
+
+// Define available muscle groups 
+const muscleGroups = ['Chest', 'Back', 'Legs', 'Shoulders', 'Biceps', 'Triceps', 'Core', 'Cardio'];
 
 const PlanScreen = () => {
   const navigation = useNavigation();
@@ -14,20 +17,37 @@ const PlanScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const handleGeneratePlan = async () => {
-    try {
-      const requestData = {
-        days_per_week: 5,
-        preferences: { muscle_groups: ['chest', 'legs'] },
-        plan_name: 'My Generated Plan',
-        description: 'A custom generated workout plan',
-      };
+  // States for user inputs
+  const [daysPerWeek, setDaysPerWeek] = useState('');
+  const [preferences, setPreferences] = useState([]);
+  const [planName, setPlanName] = useState('');
+  const [description, setDescription] = useState('');
+  const [showGenerateForm, setShowGenerateForm] = useState(false);
 
+  const handleGeneratePlan = async () => {
+    if (!daysPerWeek || isNaN(daysPerWeek) || daysPerWeek < 1 || daysPerWeek > 7) {
+      Alert.alert('Validation Error', 'Please enter a valid number of days per week (1-7).');
+      return;
+    }
+
+    const requestData = {
+      days_per_week: parseInt(daysPerWeek, 10),
+      preferences: preferences.length > 0 ? { muscle_groups: preferences } : undefined,
+      plan_name: planName || 'My Generated Plan',
+      description: description || 'A custom generated workout plan',
+    };
+
+    try {
       const generatedPlan = await generatePlan(token, requestData);
       navigation.navigate('ViewPlanScreen', { plan: generatedPlan.plan_id });
+      setShowGenerateForm(false); // Hide form after successful generation
+      setDaysPerWeek('');
+      setPreferences([]);
+      setPlanName('');
+      setDescription('');
     } catch (error) {
       console.error('Error generating plan:', error);
-      alert('Failed to generate plan. Please try again.');
+      Alert.alert('Error', 'Failed to generate plan. Please try again.');
     }
   };
 
@@ -63,10 +83,16 @@ const PlanScreen = () => {
     navigation.goBack();
   };
 
+  const togglePreference = (muscle) => {
+    setPreferences((prev) =>
+      prev.includes(muscle) ? prev.filter((m) => m !== muscle) : [...prev, muscle]
+    );
+  };
+
   const renderExerciseItem = ({ item }) => (
     <TouchableOpacity
       style={styles.exerciseCard}
-      onPress={() => navigation.navigate('WorkoutDetailsScreen', { exercise })}
+      onPress={() => navigation.navigate('WorkoutDetailsScreen', { exercise: item })}
     >
       <View style={styles.exerciseContent}>
         {item.image_url && (
@@ -132,6 +158,61 @@ const PlanScreen = () => {
         )}
       </View>
 
+      {/* Generate Plan Form */}
+      {showGenerateForm && (
+        <View style={styles.formContainer}>
+          <Text style={styles.formTitle}>Generate a New Plan</Text>
+
+          <TextInput
+            style={styles.input}
+            placeholder="Number of days per week (1-7)"
+            placeholderTextColor="#888"
+            keyboardType="numeric"
+            value={daysPerWeek}
+            onChangeText={setDaysPerWeek}
+          />
+
+          <Text style={styles.label}>Select Muscle Groups (optional)</Text>
+          <View style={styles.muscleGroupContainer}>
+            {muscleGroups.map((muscle) => (
+              <TouchableOpacity
+                key={muscle}
+                style={[styles.muscleButton, preferences.includes(muscle) && styles.selectedMuscle]}
+                onPress={() => togglePreference(muscle)}
+              >
+                <Text style={styles.muscleText}>{muscle}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <TextInput
+            style={styles.input}
+            placeholder="Plan Name (optional)"
+            placeholderTextColor="#888"
+            value={planName}
+            onChangeText={setPlanName}
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Description (optional)"
+            placeholderTextColor="#888"
+            value={description}
+            onChangeText={setDescription}
+          />
+
+          <TouchableOpacity style={styles.generateButton} onPress={handleGeneratePlan}>
+            <Text style={styles.generateButtonText}>Generate Plan</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={() => setShowGenerateForm(false)}
+          >
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Bottom Buttons */}
       <View style={styles.bottomButtons}>
         <TouchableOpacity style={styles.bottomButton} onPress={() => navigation.navigate('ShowPlansScreen')}>
@@ -140,7 +221,10 @@ const PlanScreen = () => {
         <TouchableOpacity style={styles.bottomButton} onPress={() => navigation.navigate('EditPlanScreen')}>
           <Text style={styles.bottomButtonText}>Create Plan</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.bottomButton} onPress={handleGeneratePlan}>
+        <TouchableOpacity
+          style={styles.bottomButton}
+          onPress={() => setShowGenerateForm(true)}
+        >
           <Text style={styles.bottomButtonText}>Generate Plan</Text>
         </TouchableOpacity>
       </View>
@@ -258,6 +342,74 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     fontWeight: '600',
+  },
+  formContainer: {
+    position: 'absolute',
+    top: 100,
+    left: 20,
+    right: 20,
+    backgroundColor: '#1e1e1e',
+    padding: 20,
+    borderRadius: 10,
+    elevation: 5,
+  },
+  formTitle: {
+    fontSize: 20,
+    color: 'white',
+    fontWeight: 'bold',
+    marginBottom: 15,
+  },
+  input: {
+    backgroundColor: '#333',
+    color: 'white',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 15,
+  },
+  label: {
+    fontSize: 16,
+    color: 'white',
+    marginBottom: 10,
+  },
+  muscleGroupContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 20,
+  },
+  muscleButton: {
+    backgroundColor: '#444',
+    padding: 10,
+    borderRadius: 5,
+    margin: 5,
+  },
+  selectedMuscle: {
+    backgroundColor: '#4CAF50',
+  },
+  muscleText: {
+    color: 'white',
+    fontSize: 14,
+  },
+  generateButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  generateButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  cancelButton: {
+    backgroundColor: '#555',
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: 'white',
+    fontSize: 16,
   },
 });
 
