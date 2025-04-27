@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Image, Alert } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
-import { getPlan, getPlanDays, getPlanExercises, deletePlan } from '../../src/api/plans';
+import { getPlan, getPlanDays, getPlanExercises, deletePlan,setPlanActive } from '../../src/api/plans';
 import { AuthContext } from '../../src/AuthContext';
 
 const ViewPlanScreen = () => {
@@ -47,24 +47,34 @@ const ViewPlanScreen = () => {
   }, [plan, token]);
 
   const handleEditPress = () => {
-    navigation.navigate('EditPlanScreen', {plan });
+    navigation.navigate('EditPlanScreen', { plan });
   };
 
   const handleDeletePress = async () => {
     try {
-      setLoading(true); 
+      setLoading(true);
       await deletePlan(token, plan);
-      navigation.navigate('ShowPlansScreen'); 
+      navigation.navigate('ShowPlansScreen');
     } catch (error) {
       console.error('Failed to delete plan:', error);
       setError('Failed to delete the plan. Please try again later.');
     } finally {
-      setLoading(false); 
+      setLoading(false);
     }
   };
 
   const handleBackPress = () => {
     navigation.goBack();
+  };
+
+  const handleSetActivePress = async () => {
+    try {
+      setPlanActive(token, plan);
+      Alert.alert('Plan Set Active', `You have set "${planDetails.name}" as your active plan.`);
+    } catch (error) {
+      console.error('Failed to set active plan:', error);
+      setError('Failed to set plan active. Please try again later.');
+    }
   };
 
   if (loading) {
@@ -149,6 +159,11 @@ const ViewPlanScreen = () => {
           </View>
         ))}
       </ScrollView>
+
+      {/* Set Active Button at the bottom */}
+      <TouchableOpacity style={styles.setActiveButton} onPress={handleSetActivePress}>
+        <Text style={styles.setActiveButtonText}>Set Active Plan</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -161,7 +176,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: 40,
     paddingHorizontal: 20,
-    paddingBottom: 100,
+    paddingBottom: 140, // increased so content isn't hidden behind button
   },
   header: {
     flexDirection: 'row',
@@ -241,6 +256,22 @@ const styles = StyleSheet.create({
     fontSize: 18,
     textAlign: 'center',
     marginTop: 20,
+  },
+  setActiveButton: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: 'limegreen',
+    paddingVertical: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  setActiveButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 
