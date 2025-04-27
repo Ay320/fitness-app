@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { getPlans } from '../../src/api/plans';
 import { AuthContext } from '../../src/AuthContext';
+import { Ionicons } from '@expo/vector-icons'; 
 
 const ShowPlansScreen = () => {
   const [plans, setPlans] = useState([]);
@@ -25,24 +26,30 @@ const ShowPlansScreen = () => {
     };
 
     fetchPlans();
-  },);
+  }, [token]);
 
   const handlePlanPress = (planId) => {
     navigation.navigate('ViewPlanScreen', { plan: planId });
   };
 
+  const handleBackPress = () => {
+    navigation.goBack();
+  };
+
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <Text>Loading...</Text>
-      </View>
+      <ActivityIndicator
+        size="large"
+        color="white"
+        style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+      />
     );
   }
 
   if (error) {
     return (
       <View style={styles.centered}>
-        <Text>{error}</Text>
+        <Text style={styles.errorText}>{error}</Text>
       </View>
     );
   }
@@ -50,19 +57,27 @@ const ShowPlansScreen = () => {
   if (plans.length === 0) {
     return (
       <View style={styles.centered}>
-        <Text>No workout plans available.</Text>
+        <Text style={styles.noPlansText}>No workout plans available.</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Workout Plans</Text>
+      </View>
+
       <FlatList
         data={plans}
         keyExtractor={(item) => item.plan_id.toString()}
+        contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={styles.card}
+            style={styles.planCard}
             onPress={() => handlePlanPress(item.plan_id)}
           >
             <Text style={styles.planName}>{item.name}</Text>
@@ -79,30 +94,66 @@ const ShowPlansScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    backgroundColor: 'black',
+  },
+  header: {
+    paddingTop: 60, 
+    paddingBottom: 20,
+    backgroundColor: 'black',
+    alignItems: 'center', 
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+    position: 'relative'
+  },
+  backButton: {
+    position: 'absolute',
+    left: 20, 
+    top: 20, 
+    padding: 10,
+    zIndex: 1, 
+  },
+  headerTitle: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: 'white',
+    textAlign: 'center',
+  },
+  listContent: {
+    padding: 20,
+    paddingBottom: 100,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'black',
+    padding: 20,
   },
-  card: {
-    padding: 16,
-    marginBottom: 10,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
+  errorText: {
+    color: 'red',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  noPlansText: {
+    color: 'white',
+    fontSize: 18,
+    textAlign: 'center',
+  },
+  planCard: {
+    backgroundColor: '#222',
+    borderRadius: 10,
+    padding: 20,
+    marginBottom: 15,
   },
   planName: {
-    fontSize: 18,
+    color: 'white',
+    fontSize: 20,
     fontWeight: 'bold',
+    marginBottom: 8,
   },
   planDescription: {
+    color: 'gray',
     fontSize: 14,
-    color: '#666',
   },
 });
 
