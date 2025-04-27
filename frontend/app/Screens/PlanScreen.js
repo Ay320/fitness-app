@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { getActivePlan, getPlanDays, getPlanExercises, generatePlan } from '../../src/api/plans'; // Import the generatePlan API
+import { getActivePlan, getPlanDays, getPlanExercises, generatePlan } from '../../src/api/plans'; 
 import { AuthContext } from '../../src/AuthContext';
 
 const PlanScreen = () => {
@@ -14,17 +14,17 @@ const PlanScreen = () => {
 
   const handleGeneratePlan = async () => {
     try {
-      // Example request data for generating a plan
+      
       const requestData = {
-        days_per_week: 5, // Adjust as needed
-        preferences: { muscle_groups: ['chest', 'legs'] }, // Example preferences
+        days_per_week: 5, 
+        preferences: { muscle_groups: ['chest', 'legs'] }, 
         plan_name: 'My Generated Plan',
         description: 'A custom generated workout plan',
       };
 
       const generatedPlan = await generatePlan(token, requestData);
 
-      // Navigate to ViewPlanScreen with the generated plan
+      
       navigation.navigate('ViewPlanScreen', { plan: generatedPlan.plan_id });
     } catch (error) {
       console.error('Error generating plan:', error);
