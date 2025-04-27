@@ -1,12 +1,22 @@
 import React, { useEffect, useState, useContext } from 'react';
-import {View,Text,FlatList,TouchableOpacity,Image,StyleSheet,ActivityIndicator,ScrollView,Dimensions,} from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  ActivityIndicator,
+  ScrollView,
+  Dimensions,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as Progress from 'react-native-progress';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {getActivePlan,getPlanDays,getPlanExercises,} from '../../src/api/plans';
+import { getActivePlan, getPlanDays, getPlanExercises } from '../../src/api/plans';
 import { getWorkoutLogs } from '../../src/api/workouts';
 import { syncUser } from '../../src/api/authApi';
-import { getUserStreak } from '../../src/api/user'; 
+import { getUserStreak } from '../../src/api/user';
 import { AuthContext } from '../../src/AuthContext';
 
 const { width } = Dimensions.get('window');
@@ -18,8 +28,41 @@ const MainScreen = () => {
   const [recentActivity, setRecentActivity] = useState([]);
   const [activePlan, setActivePlan] = useState(null);
   const [upcomingWorkouts, setUpcomingWorkouts] = useState([]);
-  const [streak, setStreak] = useState(0); // Streak state
+  const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  // Function to format date to 'YYYY-MM-DD' in local time zone
+  const formatLocalDate = (date) => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Function to calculate streak based on workout logs
+  const calculateStreak = (logs) => {
+    if (!logs || logs.length === 0) return 0;
+
+    // Extract unique local dates from logs
+    const workoutDates = logs.map((log) => formatLocalDate(log.date_logged));
+    const uniqueDates = [...new Set(workoutDates)].sort((a, b) => new Date(b) - new Date(a));
+
+    // Get today's date in local time zone
+    const today = new Date();
+    const todayStr = formatLocalDate(today);
+
+    let streak = 0;
+    let currentDate = new Date(today);
+
+    // Check consecutive days starting from today
+    while (uniqueDates.includes(formatLocalDate(currentDate))) {
+      streak++;
+      currentDate.setDate(currentDate.getDate() - 1);
+    }
+
+    return streak;
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -27,15 +70,13 @@ const MainScreen = () => {
         const userData = await syncUser(token);
         setUser(userData);
 
-        // Fetch user streak data
-        const streakData = await getUserStreak(token);
-        setStreak(streakData.current_streak); // Set streak from the response
-
         const logs = await getWorkoutLogs(token);
-        const sortedLogs = logs.sort(
-          (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
-        );
+        const sortedLogs = logs.sort((a, b) => new Date(b.date_logged) - new Date(a.date_logged));
         setRecentActivity(sortedLogs);
+
+        // Calculate streak locally
+        const localStreak = calculateStreak(sortedLogs);
+        setStreak(localStreak);
 
         const activePlanData = await getActivePlan(token);
         setActivePlan(activePlanData);
@@ -44,11 +85,7 @@ const MainScreen = () => {
           const planDays = await getPlanDays(token, activePlanData.plan_id);
           const workouts = await Promise.all(
             planDays.map(async (day) => {
-              const exercises = await getPlanExercises(
-                token,
-                activePlanData.plan_id,
-                day.plan_day_id
-              );
+              const exercises = await getPlanExercises(token, activePlanData.plan_id, day.plan_day_id);
               return { day: day.day_number, exercises };
             })
           );
@@ -65,6 +102,29 @@ const MainScreen = () => {
     fetchData();
   }, [token]);
 
+  // Group recent activities into pairs for swipeable cards
+  const groupedRecentActivities = [];
+  for (let i = 0; i < recentActivity.length; i += 2) {
+    groupedRecentActivities.push(recentActivity.slice(i, i + 2));
+  }
+
+  const renderSwipeableActivityPair = ({ item, index }) => (
+    <View key={`pair-${index}`} style={styles.activityPairContainer}>
+      {item.map((activity, activityIndex) => (
+        <View
+          key={`activity-${activity.workout_log_id || activityIndex}`}
+          style={styles.activityCard}
+        >
+          <Text style={styles.activityTitle}>{activity.exercise_name}</Text>
+          <Text style={styles.activityDate}>
+            {new Date(activity.date_logged).toLocaleDateString()}
+          </Text>
+        </View>
+      ))}
+      {item.length === 1 && <View key="placeholder" style={styles.activityCardPlaceholder} />}
+    </View>
+  );
+
   if (loading) {
     return (
       <ActivityIndicator
@@ -73,64 +133,6 @@ const MainScreen = () => {
         style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
       />
     );
-  }
-
-  const renderActivity = ({ item }) => (
-    <View style={styles.activityCard}>
-      <Image
-        source={{
-          uri: item.image || 'https://via.placeholder.com/60',
-        }}
-        style={styles.activityImage}
-      />
-      <View style={styles.activityDetails}>
-        <Text style={styles.activityTitle}>{item.exercise_name || 'Workout'}</Text>
-        <Text style={styles.activityInfo}>
-          {item.duration || 0} min | {item.calories_burned || 0} kcal
-        </Text>
-      </View>
-    </View>
-  );
-
-  const renderSwipeableActivityPair = ({ item }) => (
-    <View style={styles.activityPairContainer}>
-      <View style={styles.activityStack}>
-        <View style={styles.activityCard}>
-          <Image
-            source={{
-              uri: item[0]?.image || 'https://via.placeholder.com/60',
-            }}
-            style={styles.activityImage}
-          />
-          <View style={styles.activityDetails}>
-            <Text style={styles.activityTitle}>{item[0]?.exercise_name || 'Workout'}</Text>
-            <Text style={styles.activityInfo}>
-              {item[0]?.duration || 0} min | {item[0]?.calories_burned || 0} kcal
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.activityCard}>
-          <Image
-            source={{
-              uri: item[1]?.image || 'https://via.placeholder.com/60',
-            }}
-            style={styles.activityImage}
-          />
-          <View style={styles.activityDetails}>
-            <Text style={styles.activityTitle}>{item[1]?.exercise_name || 'Workout'}</Text>
-            <Text style={styles.activityInfo}>
-              {item[1]?.duration || 0} min | {item[1]?.calories_burned || 0} kcal
-            </Text>
-          </View>
-        </View>
-      </View>
-    </View>
-  );
-
-  const groupedRecentActivities = [];
-  for (let i = 0; i < recentActivity.length; i += 2) {
-    groupedRecentActivities.push(recentActivity.slice(i, i + 2));
   }
 
   return (
@@ -163,16 +165,13 @@ const MainScreen = () => {
         </View>
       </View>
 
-      <ScrollView
-        style={{ flex: 1, width: '100%' }}
-        contentContainerStyle={styles.contentContainer}
-      >
+      <ScrollView style={{ flex: 1, width: '100%' }} contentContainerStyle={styles.contentContainer}>
         <View style={styles.recentActivityContainer}>
           <Text style={styles.sectionTitle}>Recent Activity</Text>
           {recentActivity.length > 0 ? (
             <FlatList
-              data={groupedRecentActivities} 
-              keyExtractor={(item, index) => index.toString()}
+              data={groupedRecentActivities}
+              keyExtractor={(item, index) => `pair-${index}`}
               renderItem={renderSwipeableActivityPair}
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -196,16 +195,10 @@ const MainScreen = () => {
               <View style={styles.scrollDayCard}>
                 <Text style={styles.workoutDayTitle}>Day {item.day}</Text>
                 {item.exercises.map((exercise) => (
-                  <View
-                    key={exercise.plan_exercise_id}
-                    style={styles.scrollWorkoutCard}
-                  >
-                    <Text style={styles.workoutName}>
-                      {exercise.exercise_name}
-                    </Text>
+                  <View key={exercise.plan_exercise_id} style={styles.scrollWorkoutCard}>
+                    <Text style={styles.workoutName}>{exercise.exercise_name}</Text>
                     <Text style={styles.workoutDescription}>
-                      {exercise.recommended_sets} sets x{' '}
-                      {exercise.recommended_reps} reps
+                      {exercise.recommended_sets} sets x {exercise.recommended_reps} reps
                     </Text>
                   </View>
                 ))}
@@ -217,16 +210,16 @@ const MainScreen = () => {
             style={{ maxHeight: 250 }}
           />
         ) : (
-          <Text style={styles.noWorkoutsText}>
-            No upcoming workouts found.
-          </Text>
+          <Text style={styles.noWorkoutsText}>No upcoming workouts found.</Text>
         )}
       </ScrollView>
 
       <View style={styles.quickActionsContainer}>
-        {[{ id: 'start', icon: 'search', screen: 'FindWorkoutScreen' },
+        {[
+          { id: 'start', icon: 'search', screen: 'FindWorkoutScreen' },
           { id: 'plan', icon: 'calendar-month', screen: 'PlanScreen' },
-          { id: 'stats', icon: 'bar-chart', screen: 'AnalyticsScreen' }].map((action) => (
+          { id: 'stats', icon: 'bar-chart', screen: 'AnalyticsScreen' },
+        ].map((action) => (
           <TouchableOpacity
             key={action.id}
             onPress={() => navigation.navigate(action.screen)}
@@ -243,24 +236,26 @@ const MainScreen = () => {
 const styles = StyleSheet.create({
   background: {
     flex: 1,
-    backgroundColor: 'rgb(0, 0, 0)',
+    backgroundColor: '#1a1a1a',
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    padding: 20,
   },
   topBar: {
+    width: '100%',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    width: '100%',
+    paddingHorizontal: 20,
+    paddingTop: 40,
+    paddingBottom: 20,
+    backgroundColor: '#2a2a2a',
   },
   welcomeText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
+    fontSize: 16,
+    color: '#aaa',
   },
   usernameText: {
-    fontSize: 20,
+    fontSize: 24,
+    fontWeight: 'bold',
     color: 'white',
   },
   profileContainer: {
@@ -268,12 +263,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   streakContainer: {
-    marginRight: 15,
+    flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 10,
   },
   streakText: {
+    fontSize: 18,
     color: 'white',
-    fontSize: 16,
+    marginLeft: 5,
   },
   profileImage: {
     width: 50,
@@ -281,104 +278,105 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   contentContainer: {
-    flexGrow: 1,
-    justifyContent: 'flex-start',
+    alignItems: 'center',
+    paddingBottom: 100,
   },
   recentActivityContainer: {
-    marginBottom: 20,
+    width: width - 40,
+    marginVertical: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: 'bold',
     color: 'white',
     marginBottom: 10,
   },
   activityPairContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
     width: width - 40,
-  },
-  activityStack: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginRight: 20,
   },
   activityCard: {
-    flexDirection: 'row',
-    backgroundColor: '#222',
+    backgroundColor: '#333',
+    padding: 15,
     borderRadius: 10,
-    padding: 10,
-    marginBottom: 10, // Space between stacked activities
-    width: width - 100, // Shortened width
-    height: 100, // Shortened height
+    width: (width - 60) / 2,
+    marginRight: 10,
   },
-  activityImage: {
-    width: 50, // Adjust image size for shorter card
-    height: 50, // Adjust image size for shorter card
-    borderRadius: 25,
-  },
-  activityDetails: {
-    marginLeft: 10,
-    justifyContent: 'center',
+  activityCardPlaceholder: {
+    width: (width - 60) / 2,
+    marginRight: 10,
   },
   activityTitle: {
-    fontSize: 14, // Adjust title size for shorter card
+    fontSize: 16,
+    fontWeight: 'bold',
     color: 'white',
   },
-  activityInfo: {
-    color: 'gray',
-    fontSize: 12, // Adjust text size for shorter card
+  activityDate: {
+    fontSize: 14,
+    color: '#aaa',
+    marginTop: 5,
   },
   noActivityText: {
-    color: 'white',
     fontSize: 16,
+    color: '#aaa',
+    textAlign: 'center',
   },
   planText: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: 'white',
-    marginTop: 10,
-  },
-  noWorkoutsText: {
-    color: 'white',
-    fontSize: 16,
-  },
-  quickActionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    position: 'absolute',
-    bottom: 20,
-    width: '100%',
-  },
-  quickActionButton: {
-    padding: 15,
-    backgroundColor: '#333',
-    borderRadius: 50,
+    width: width - 40,
+    marginVertical: 10,
   },
   scrollDayCard: {
-    backgroundColor: '#222',
+    backgroundColor: '#333',
     borderRadius: 10,
     padding: 15,
-    marginRight: 15,
-    width: 250,
-  },
-  scrollWorkoutCard: {
-    backgroundColor: '#333',
-    borderRadius: 8,
-    padding: 10,
-    marginTop: 10,
+    marginRight: 20,
+    width: width - 40,
   },
   workoutDayTitle: {
-    color: 'white',
-    fontWeight: 'bold',
     fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 10,
+  },
+  scrollWorkoutCard: {
+    backgroundColor: '#444',
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 10,
   },
   workoutName: {
-    color: 'white',
     fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
   },
   workoutDescription: {
-    color: 'gray',
     fontSize: 14,
+    color: '#aaa',
+  },
+  noWorkoutsText: {
+    fontSize: 16,
+    color: '#aaa',
+    textAlign: 'center',
+    width: width - 40,
+  },
+  quickActionsContainer: {
+    position: 'absolute',
+    bottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: width - 40,
+  },
+  quickActionButton: {
+    backgroundColor: '#555',
+    padding: 15,
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
