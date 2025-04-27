@@ -13,24 +13,21 @@ const ViewPlanScreen = () => {
   const { token } = useContext(AuthContext);
   const route = useRoute();
   const navigation = useNavigation();
-  const { plan } = route.params;
+  const { plan } = route.params; 
 
   useEffect(() => {
     const fetchPlanData = async () => {
       try {
-        // Fetch plan details
         const fetchedPlanDetails = await getPlan(token, plan);
         setPlanDetails(fetchedPlanDetails);
 
-        // Fetch plan days
         const fetchedPlanDays = await getPlanDays(token, plan);
         setPlanDays(fetchedPlanDays);
 
-        // Fetch exercises for each day
         const exercises = {};
         for (const day of fetchedPlanDays) {
-          const dayExercises = await getPlanExercises(token, plan.id, da);
-          exercises[day.id] = dayExercises;
+          const dayExercises = await getPlanExercises(token, plan, day.plan_day_id);
+          exercises[day.plan_day_id] = dayExercises;
         }
         setExercisesByDay(exercises);
       } catch (error) {
@@ -82,17 +79,20 @@ const ViewPlanScreen = () => {
       <Text style={styles.sectionTitle}>Plan Days:</Text>
       {planDays.length > 0 ? (
         planDays.map((day) => (
-          <View key={day.id} style={styles.dayCard}>
-            <Text style={styles.dayTitle}>{day.name}</Text>
-            {exercisesByDay[day.id] && exercisesByDay[day.id].length > 0 ? (
-              exercisesByDay[day.id].map((exercise, index) => (
+          <View key={day.plan_day_id} style={styles.dayCard}>
+            <Text style={styles.dayTitle}>Day {day.day_number}</Text>
+            <Text style={styles.dayDescription}>
+              {day.description || 'No description available'}
+            </Text>
+            {exercisesByDay[day.plan_day_id] && exercisesByDay[day.plan_day_id].length > 0 ? (
+              exercisesByDay[day.plan_day_id].map((exercise, index) => (
                 <View key={index} style={styles.exerciseCard}>
-                  <Text style={styles.exerciseName}>{exercise.name}</Text>
+                  <Text style={styles.exerciseName}>{exercise.exercise_name}</Text>
                   <Text style={styles.exerciseInfo}>
-                    Sets: {exercise.sets} | Reps: {exercise.reps}
+                    Sets: {exercise.recommended_sets || 'N/A'} | Reps: {exercise.recommended_reps || 'N/A'}
                   </Text>
                   <Text style={styles.exerciseDescription}>
-                    {exercise.description || 'No description available'}
+                    {exercise.category} - {exercise.primary_muscle}
                   </Text>
                 </View>
               ))
@@ -144,6 +144,11 @@ const styles = StyleSheet.create({
   dayTitle: {
     fontSize: 20,
     fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  dayDescription: {
+    fontSize: 14,
+    color: '#666',
     marginBottom: 8,
   },
   exerciseCard: {

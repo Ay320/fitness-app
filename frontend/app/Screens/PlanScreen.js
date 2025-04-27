@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { getActivePlan, getPlanDays, getPlanExercises } from '../../src/api/plans';
+import { getActivePlan, getPlanDays, getPlanExercises, generatePlan } from '../../src/api/plans'; // Import the generatePlan API
 import { AuthContext } from '../../src/AuthContext';
 
 const PlanScreen = () => {
@@ -11,6 +11,26 @@ const PlanScreen = () => {
   const [activePlan, setActivePlan] = useState(null);
   const [planDays, setPlanDays] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const handleGeneratePlan = async () => {
+    try {
+      // Example request data for generating a plan
+      const requestData = {
+        days_per_week: 5, // Adjust as needed
+        preferences: { muscle_groups: ['chest', 'legs'] }, // Example preferences
+        plan_name: 'My Generated Plan',
+        description: 'A custom generated workout plan',
+      };
+
+      const generatedPlan = await generatePlan(token, requestData);
+
+      // Navigate to ViewPlanScreen with the generated plan
+      navigation.navigate('ViewPlanScreen', { plan: generatedPlan.plan_id });
+    } catch (error) {
+      console.error('Error generating plan:', error);
+      alert('Failed to generate plan. Please try again.');
+    }
+  };
 
   useEffect(() => {
     const fetchPlanData = async () => {
@@ -67,7 +87,6 @@ const PlanScreen = () => {
           <Text style={styles.planDescription}>{activePlan.description}</Text>
         </View>
 
-        {/* Plan days and exercises */}
         {planDays.map((day) => (
           <View key={day.plan_day_id} style={styles.dayContainer}>
             <Text style={styles.dayTitle}>Day {day.day_number}</Text>
@@ -105,7 +124,7 @@ const PlanScreen = () => {
         <TouchableOpacity style={styles.bottomButton} onPress={() => navigation.navigate('EditPlanScreen')}>
           <Text style={styles.bottomButtonText}>Create Plan</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.bottomButton} onPress={() => navigation.navigate('GeneratePlanScreen')}>
+        <TouchableOpacity style={styles.bottomButton} onPress={handleGeneratePlan}>
           <Text style={styles.bottomButtonText}>Generate Plan</Text>
         </TouchableOpacity>
       </View>
