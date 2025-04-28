@@ -132,7 +132,6 @@ CREATE INDEX idx_plan_exercises_plan_day_id ON Plan_Exercises(plan_day_id);
 
 -- Checks:
 SHOW TABLES;
-SELECT * FROM Users WHERE firebase_uid = 'une1uwhaFy6UFRk7tCGldO0xPX5U';
 DELETE FROM Users WHERE firebase_uid IS NULL OR username IS NULL;
 SELECT * FROM Workout_Exercises;
 SELECT * FROM Users;
