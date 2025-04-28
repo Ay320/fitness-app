@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#222',
-        padding: 20,
+        padding: 0,
     },
     backButton: {
         position: 'absolute',
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
         height: 40, // Matches the height of other inputs
         backgroundColor: 'rgba(255,255,255,0.2)',
         borderRadius: 10,
-        paddingHorizontal: 70, // Adds padding for better text alignment
+        paddingHorizontal: 60, // Adds padding for better text alignment
         color: 'white',
         fontSize: 16,
         marginHorizontal: 0, 
