@@ -7,7 +7,8 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@expo/metro-runtime": "~4.0.1",
@@ -20,12 +21,16 @@
     "axios": "^1.8.4",
     "expo": "~52.0.37",
     "expo-constants": "^17.0.8",
+    "expo-dev-client": "~5.0.20",
     "expo-image-picker": "^16.0.6",
     "expo-router": "^4.0.20",
     "expo-splash-screen": "~0.29.24",
     "expo-status-bar": "~2.0.1",
+    "expo-updates": "^0.27.4",
     "firebase": "^11.6.0",
     "formik": "^2.4.6",
+    "patch-package": "^8.0.0",
+    "postinstall-postinstall": "^2.1.0",
     "react": "18.3.1",
     "react-datepicker": "^8.1.0",
     "react-dom": "18.3.1",
