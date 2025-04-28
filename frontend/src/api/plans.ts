@@ -401,15 +401,17 @@ export const removeExerciseFromDay = async (token: string, planId: number, dayId
           Authorization: `Bearer ${token}`,
         },
       });
-  
-      const activePlan = response.data.find(plan => plan.is_active);
-      return activePlan || null;   // ← return null, don't throw!
       
+      // Find the active plan
+      const activePlan = response.data.find(plan => plan.is_active);
+      
+      return activePlan || null; // Return null if no active plan is found
     } catch (error: any) {
       if (error.response?.status === 401) {
         throw new Error('Unauthorized: Invalid or expired token. Please log in again.');
       }
-      throw new Error('Failed to fetch active plan.');
+      return null; // Return null for other errors, assuming no active plan
     }
   };
+
 
