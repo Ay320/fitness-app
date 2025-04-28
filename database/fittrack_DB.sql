@@ -120,11 +120,9 @@ CREATE TABLE Plan_Exercises (
 
 -- End Tables------------------------------------
 
--- Indecies for performance: still not run
+-- Indecies for performance: 
 CREATE INDEX idx_user_id_logs ON Workout_Logs(user_id);
 CREATE INDEX idx_date_logged ON Workout_Logs(date_logged);
-CREATE INDEX idx_user_id_progress ON Progress(user_id);
-CREATE INDEX idx_date_progress ON Progress(date_logged);
 CREATE INDEX idx_user_id_recommend ON AI_Recommendations(user_id);
 CREATE INDEX idx_date_recommend ON AI_Recommendations(date_recommended);
 CREATE INDEX idx_plans_user_id ON Plans(user_id);
@@ -133,27 +131,63 @@ CREATE INDEX idx_plan_exercises_plan_day_id ON Plan_Exercises(plan_day_id);
 
 -- Checks:
 SHOW TABLES;
-SELECT * FROM Users WHERE firebase_uid = 'une1uwhaFy6UFRk7tCGldO0xPX5U';
 DELETE FROM Users WHERE firebase_uid IS NULL OR username IS NULL;
 SELECT * FROM Workout_Exercises;
 SELECT * FROM Users;
 SELECT * FROM Workout_Logs;
 SELECT * FROM Weight_History;
--- 1) Plain INSERT (first‐time user)
-INSERT INTO Users
-  (username, firebase_uid, email, date_of_birth, gender, weight_kg, height_cm, fitness_goal, experience_level)
+SELECT * FROM Plans;
+SELECT * FROM Plan_Exercises;
+SELECT * FROM Plan_Days;
+
+
+  
+INSERT INTO Plans
+  (user_id, name, description, days_per_week, preferred_days, is_active)
 VALUES
-  (
-    'John',                      -- username
-    'F4vBMjhLFGgebmh87jM1Jrm6wCB3',                -- firebase_uid
-    'test2@gmail.com',         -- email
-    '1990-05-15',                   -- date_of_birth (YYYY-MM-DD)
-    'Male',                         -- gender
-    78.5,                           -- weight_kg
-    180.0,                          -- height_cm
-    'General Fitness',              -- fitness_goal
-    'Intermediate'                  -- experience_level
-  );
+  (58, 'General Fitness Plan', 'A balanced plan focusing on strength and cardio for general fitness.', 3, 'Monday,Wednesday,Friday', TRUE);
+  
+INSERT INTO Plan_Days
+  (plan_id, day_number, description)
+VALUES
+  (1, 1, 'Monday: Strength Focus'),
+  (1, 2, 'Wednesday: Cardio and Core'),
+  (1, 3, 'Friday: Full Body Workout');
+  
+INSERT INTO Plan_Exercises
+  (plan_day_id, exercise_id)
+VALUES
+  (1, 5), -- Day 1: Squats
+  (1, 6), -- Day 1: Push-Ups
+  (2, 74), -- Day 2: Running
+  (2, 8), -- Day 2: Push-Ups (for core)
+  (3, 9), -- Day 3: Squats
+  (3, 26), -- Day 3: Push-Ups
+  (3, 74); -- Day 3: Running
+
+INSERT INTO Weight_History
+  (user_id, date_logged, weight_kg)
+VALUES
+  (58, '2025-04-01 08:00:00', 78.5),  -- Starting weight
+  (58, '2025-04-08 08:00:00', 78.2),  -- Slight decrease
+  (58, '2025-04-15 08:00:00', 77.8),  -- Continuing to decrease
+  (58, '2025-04-22 08:00:00', 77.5),  -- Further decrease
+  (58, '2025-04-29 08:00:00', 77.3);  -- Most recent weight
+
+INSERT INTO Workout_Logs
+  (user_id, exercise_id, date_logged, sets, reps, duration_minutes, weight, notes)
+VALUES
+  (58, 10, '2025-04-26 08:00:00', 3, 12, NULL, 50.0, 'Felt strong today!');
+  
+  
+START TRANSACTION;
+
+DELETE FROM Workout_Exercises;
+ALTER TABLE Workout_Exercises AUTO_INCREMENT = 1;
+
+COMMIT;
+SET SQL_SAFE_UPDATES = 0;
+SET SQL_SAFE_UPDATES = 0;
 
 
 
