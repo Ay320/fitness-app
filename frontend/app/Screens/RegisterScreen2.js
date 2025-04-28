@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -25,6 +25,7 @@ function RegisterScreen2() {
   });
 
   const [showDOBInput, setShowDOBInput] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false); // State for spinner
   const genderOptions = ['Male', 'Female', 'Other'];
   const heightOptionsCM = Array.from({ length: 150 }, (_, i) => (i + 100).toString());
   const heightOptionsFT = Array.from({ length: 48 }, (_, i) => `${Math.floor(i / 12) + 3}'${i % 12}"`);
@@ -85,8 +86,9 @@ function RegisterScreen2() {
   };
 
   const submitProfile = async () => {
-    await new Promise(resolve => setTimeout(resolve, 2000)); // 2-second delay
+    setIsUpdating(true); // Show spinner
     try {
+      await new Promise(resolve => setTimeout(resolve, 4000)); // 4-second delay
       const heightCm = parseHeight(formData.height, formData.unit);
       const weightKg = parseWeight(formData.weight, formData.weightUnit);
       const dateOfBirth = formatDate(formData.DOB);
@@ -109,8 +111,9 @@ function RegisterScreen2() {
         data: error.response?.data,
       });
       alert('Failed to update profile: ' + error.message);
+    } finally {
+      setIsUpdating(false); // Hide spinner
     }
-    
   };
 
   return (
@@ -241,9 +244,16 @@ function RegisterScreen2() {
               <Picker.Item key={option} label={option} value={option} />
             ))}
           </Picker>
-          <TouchableOpacity onPress={() => handleSubmit('expLvl')} style={styles.button}>
-            <Text style={styles.buttonText}>Confirm</Text>
-          </TouchableOpacity>
+          {isUpdating ? (
+            <View style={styles.spinnerContainer}>
+              <ActivityIndicator size="large" color="#ffffff" />
+              <Text style={styles.updatingText}>Updating profile...</Text>
+            </View>
+          ) : (
+            <TouchableOpacity onPress={() => handleSubmit('expLvl')} style={styles.button}>
+              <Text style={styles.buttonText}>Confirm</Text>
+            </TouchableOpacity>
+          )}
         </>
       )}
       <View style={styles.sectionGap} />
@@ -252,7 +262,7 @@ function RegisterScreen2() {
 }
 
 const styles = StyleSheet.create({
-    background: {
+  background: {
     flex: 1,
     backgroundColor: 'rgb(0, 0, 0)',
     alignItems: 'center',
@@ -305,6 +315,16 @@ const styles = StyleSheet.create({
   },
   sectionGap: {
     height: 40,
+  },
+  spinnerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 20,
+  },
+  updatingText: {
+    color: 'white',
+    fontSize: 16,
+    marginTop: 10,
   },
 });
 
