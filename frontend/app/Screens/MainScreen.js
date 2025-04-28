@@ -21,6 +21,8 @@ import { AuthContext } from '../../src/AuthContext';
 import { exercises } from './Exercises'; // Import local exercises for image lookup
 
 const { width } = Dimensions.get('window');
+const pairWidth = width - 48; // Narrower width to show part of the next pair
+const visibleMargin = 1; // Space to reveal a portion of the next pair
 
 const MainScreen = () => {
   const navigation = useNavigation();
@@ -159,7 +161,7 @@ const MainScreen = () => {
           <View style={styles.streakContainer}>
             <Icon
               name="whatshot"
-              size={32}
+              size={35}
               color={streak > 0 ? 'orange' : 'gray'}
             />
             <Text style={styles.streakText}>{streak}</Text>
@@ -190,7 +192,7 @@ const MainScreen = () => {
               contentContainerStyle={{ paddingVertical: 10 }}
               style={{ maxHeight: 250 }}
               initialNumToRender={2}
-              snapToInterval={width - 40}
+              snapToInterval={pairWidth + visibleMargin} // Snap to show part of next pair
               decelerationRate="fast"
             />
           ) : (
@@ -273,12 +275,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 40,
-    paddingBottom: 20,
+    paddingBottom: 10,
     backgroundColor: '#2a2a2a',
   },
   welcomeText: {
-    fontSize: 16,
+    fontSize: 20,
     color: '#aaa',
+    marginTop:'10'
   },
   usernameText: {
     fontSize: 24,
@@ -319,10 +322,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   activityPairContainer: {
-    width: width - 40,
+    width: pairWidth, // Narrower container width
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginRight: 20,
+    marginRight: visibleMargin, // Space for next pair visibility
   },
   activityCard: {
     flexDirection: 'row', // Layout image and text side by side
@@ -330,7 +333,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#333',
     padding: 15,
     borderRadius: 10,
-    width: (width - 60) / 2,
+    width: (pairWidth - 20) / 2, // Adjusted card width
     marginRight: 10,
   },
   activityImage: {
@@ -353,7 +356,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   activityCardPlaceholder: {
-    width: (width - 60) / 2,
+    width: (pairWidth - 20) / 2,
     marginRight: 10,
   },
   noActivityText: {
