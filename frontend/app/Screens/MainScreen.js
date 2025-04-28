@@ -93,6 +93,8 @@ const MainScreen = () => {
             })
           );
           setUpcomingWorkouts(workouts);
+        }else {
+          setUpcomingWorkouts([]); // Set to empty array if no active plan
         }
 
         setLoading(false);

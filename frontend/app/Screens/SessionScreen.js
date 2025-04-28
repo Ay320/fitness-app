@@ -19,7 +19,7 @@ const InputControl = ({ label, value, setValue, isText = false }) => {
                 </TouchableOpacity>
             )}
             <TextInput
-                style={styles.input}
+                style={[styles.input, isText && styles.notesInput]}
                 value={String(value)}
                 keyboardType={isText ? 'default' : 'numeric'}
                 onChangeText={(text) => {
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#333',
         borderRadius: 15,
         padding: 20,
-        marginTop: -50,
+        marginTop: -10,
     },
     inputBox: {
         backgroundColor: '#333',
@@ -230,6 +230,8 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 18,
         flex: 1,
+        width:120,
+        textAlign: 'left',
     },
     input: {
         width: 50,
@@ -240,6 +242,17 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 16,
         marginHorizontal: 8,
+    },
+    notesInput: {
+        width: '100%', // Full width of the container
+        height: 40, // Matches the height of other inputs
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        borderRadius: 10,
+        paddingHorizontal: 70, // Adds padding for better text alignment
+        color: 'white',
+        fontSize: 16,
+        marginHorizontal: 0, 
+        flex:1,
     },
     startButton: {
         width: '70%',
@@ -260,7 +273,7 @@ const styles = StyleSheet.create({
     },
     bannerImage: {
         width: '100%',
-        height: 250,
+        height: 350,
         borderRadius: 10,
         marginBottom: 20,
     },
