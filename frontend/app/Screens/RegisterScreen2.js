@@ -88,7 +88,7 @@ function RegisterScreen2() {
   const submitProfile = async () => {
     setIsUpdating(true); // Show spinner
     try {
-      await new Promise(resolve => setTimeout(resolve, 4000)); // 4-second delay
+      await new Promise(resolve => setTimeout(resolve, 5000)); // 5-second delay
       const heightCm = parseHeight(formData.height, formData.unit);
       const weightKg = parseWeight(formData.weight, formData.weightUnit);
       const dateOfBirth = formatDate(formData.DOB);
