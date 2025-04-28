@@ -85,6 +85,7 @@ function RegisterScreen2() {
   };
 
   const submitProfile = async () => {
+    await new Promise(resolve => setTimeout(resolve, 2000)); // 2-second delay
     try {
       const heightCm = parseHeight(formData.height, formData.unit);
       const weightKg = parseWeight(formData.weight, formData.weightUnit);
