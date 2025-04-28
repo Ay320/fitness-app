@@ -103,8 +103,14 @@ function RegisterScreen2() {
       await updateUserProfile(token, profileData);
       navigation.navigate('MainScreen');
     } catch (error) {
+      console.error('Profile Update Error:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
       alert('Failed to update profile: ' + error.message);
     }
+    
   };
 
   return (
