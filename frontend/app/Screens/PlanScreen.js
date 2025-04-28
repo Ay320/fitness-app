@@ -87,7 +87,7 @@ const PlanScreen = () => {
   }, [token]);
 
   const handleBackPress = () => {
-    navigation.goBack();
+    navigation.navigate("MainScreen");
   };
 
   const renderExerciseItem = ({ item }) => {
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   backButton: {
     position: 'absolute',
     left: 20,
-    top: 20,
+    top: 40,
     padding: 10,
   },
   headerTitle: {
