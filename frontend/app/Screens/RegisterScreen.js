@@ -43,10 +43,9 @@ function RegisterScreen(props) {
       navigation.navigate('RegisterScreen2', { username, token });                   
     } catch (error) {
       Alert.alert("Registration failed", error.message);
+    } finally {
+      setLoading(false); // Hide loading indicator
     }
-    finally {
-        setLoading(false); // Hide loading indicator
-      }
   };
 
   return (
@@ -105,7 +104,7 @@ function RegisterScreen(props) {
       </View>
       <View style={styles.sectionGap} />
       <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={loading}>
-      <Text style={styles.buttonText}>{loading ? 'Registering...' : 'Confirm'}</Text>
+        <Text style={styles.buttonText}>{loading ? 'Registering...' : 'Confirm'}</Text>
       </TouchableOpacity>
     </View>
   );
