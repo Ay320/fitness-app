@@ -81,7 +81,7 @@ const ViewPlanScreen = () => {
   };
 
   const handleBackPress = () => {
-    navigation.goBack();
+    navigation.navigate("ShowPlansScreen");
   };
 
   const handleSetActivePress = async () => {
