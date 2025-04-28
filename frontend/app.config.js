@@ -9,7 +9,7 @@ module.exports = {
       policy: "appVersion"
     },
     android: {
-      package: "com.ay320.fitnessapp" // Add this
+      package: "com.ay320.fitnessapp"
     },
     extra: {
       API_BASE_URL: "http://13.42.65.113:8000",
